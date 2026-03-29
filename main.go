@@ -7,7 +7,7 @@ import (
 
 	"github.com/HubertasVin/robust-facility-location/config"
 	"github.com/HubertasVin/robust-facility-location/problem"
-	"github.com/HubertasVin/robust-facility-location/qlearning"
+	"github.com/HubertasVin/robust-facility-location/ranking"
 	"github.com/HubertasVin/robust-facility-location/rng"
 )
 
@@ -21,25 +21,32 @@ func main() {
 		log.Fatalf("Failed to load problem data: %v", err)
 	}
 
-	agent := qlearning.NewAgent(cfg, prob)
+	agent := ranking.NewAgent(cfg, prob)
+
+	// Try to load existing ranks (transfers experience across instances)
+	_ = agent.RankTable.Load(cfg.RankFile)
 
 	if cfg.PerformTraining {
-		agent.RunMultipleTrainingRuns()
-		if err := agent.QTable.Save(cfg.QTableFile); err != nil {
-			log.Fatalf("Failed to save Q-table: %v", err)
+		fmt.Println("\n=== Running FLARC/PL Optimization ===")
+		best := agent.Run()
+
+		if err := agent.RankTable.Save(cfg.RankFile); err != nil {
+			log.Fatalf("Failed to save rank table: %v", err)
 		}
+
+		fmt.Printf("\nBest solution found: ")
+		for _, loc := range best.Locations {
+			fmt.Printf("%d ", loc)
+		}
+		fmt.Printf("(%.6f%%)\n", best.Utility)
 	} else {
-		if err := agent.QTable.Load(cfg.QTableFile); err != nil {
-			log.Fatalf("Failed to load Q-table: %v", err)
+		optimalSolution := agent.GetOptimalSolution()
+		utility := prob.UtilityBinary(optimalSolution)
+
+		fmt.Printf("Optimal locations for the new facilities: ")
+		for _, loc := range optimalSolution {
+			fmt.Printf("%d ", loc)
 		}
+		fmt.Printf("(%.6f%%)\n", utility)
 	}
-
-	optimalSolution := agent.GetOptimalSolution()
-	utility := prob.UtilityBinary(optimalSolution)
-
-	fmt.Printf("Optimal locations for the new facilities: ")
-	for _, loc := range optimalSolution {
-		fmt.Printf("%d ", loc)
-	}
-	fmt.Printf("(%.6f%%)\n", utility)
 }

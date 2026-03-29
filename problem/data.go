@@ -137,7 +137,7 @@ func (p *Problem) loadDemands(filename string) error {
 	}
 
 	p.Demands = make([]DemandPoint, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if p.Demands[i].Lat, err = readFloat(); err != nil {
 			return err
 		}

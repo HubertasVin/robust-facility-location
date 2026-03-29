@@ -26,7 +26,7 @@ func HaversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 func (p *Problem) buildDistanceMatrix() {
 	n := len(p.Demands)
 	p.DM = make([][]float64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p.DM[i] = make([]float64, i+1)
 		for j := 0; j <= i; j++ {
 			p.DM[i][j] = HaversineDistance(

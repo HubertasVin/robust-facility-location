@@ -21,7 +21,15 @@ func main() {
 		log.Fatalf("Failed to load problem data: %v", err)
 	}
 
-	agent := ranking.NewAgent(cfg, prob)
+	behaviorModel := problem.HuffModel{}
+	// Example alternatives:
+	// behaviorModel := problem.PartiallyBinaryModel{}
+	// behaviorModel := problem.ParetoHuffModel{}
+	// behaviorModel := problem.UtilityFunc(func(p *problem.Problem, x []int) float64 {
+	// 	return problem.ParetoHuffModel{}.Utility(p, x)
+	// })
+
+	agent := ranking.NewAgent(cfg, prob, behaviorModel)
 
 	// Try to load existing ranks (transfers experience across instances)
 	_ = agent.RankTable.Load(cfg.RankFile)
@@ -41,7 +49,7 @@ func main() {
 		fmt.Printf("(%.6f%%)\n", best.Utility)
 	} else {
 		optimalSolution := agent.GetOptimalSolution()
-		utility := prob.UtilityBinary(optimalSolution)
+		utility := behaviorModel.Utility(prob, optimalSolution)
 
 		fmt.Printf("Optimal locations for the new facilities: ")
 		for _, loc := range optimalSolution {

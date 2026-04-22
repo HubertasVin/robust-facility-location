@@ -15,24 +15,29 @@ type Agent struct {
 	Cfg       *config.Config
 	Prob      *problem.Problem
 	RankTable *RankTable
+	Behavior  problem.CustomerBehaviorModel
 	baseline  float64
 }
 
 // NewAgent creates a new Agent.
-func NewAgent(cfg *config.Config, prob *problem.Problem) *Agent {
+func NewAgent(cfg *config.Config, prob *problem.Problem, behavior problem.CustomerBehaviorModel) *Agent {
+	if behavior == nil {
+		behavior = problem.BinaryModel{}
+	}
 	rt := NewRankTable()
 	rt.Initialize(prob.L)
 	return &Agent{
 		Cfg:       cfg,
 		Prob:      prob,
 		RankTable: rt,
+		Behavior:  behavior,
 		baseline:  0.0,
 	}
 }
 
 // Utility evaluates a solution's utility.
 func (a *Agent) Utility(locations []int) float64 {
-	return a.Prob.UtilityBinary(locations)
+	return a.Behavior.Utility(a.Prob, locations)
 }
 
 // generateInitialSolution creates a random initial solution.
@@ -120,7 +125,7 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLoc int
 			continue
 		}
 		expVal := math.Exp(normalizedRanks[i] - maxNorm)
-		
+
 		// Weight by inverse distance if changing a specific location
 		if changingLoc >= 0 {
 			dist := a.Prob.Distance(a.Prob.L[i], a.Prob.L[changingLoc])
@@ -128,7 +133,7 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLoc int
 				expVal /= dist
 			}
 		}
-		
+
 		probs[i] = expVal
 		sumZ += expVal
 	}

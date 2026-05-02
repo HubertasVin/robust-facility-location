@@ -34,16 +34,16 @@ type Config struct {
 // Load reads configuration from environment variables, falling back to defaults.
 func Load() *Config {
 	return &Config{
-		ProblemFile:          envString("RL_PROBLEM_FILE", "CFLP.dat"),
-		DemandsFile:          envString("RL_DEMANDS_FILE", "demands.dat"),
-		MaxFacilities:        envInt("RL_MAX_FACILITIES", 3),
-		PopulationSize:       envInt("RL_POPULATION_SIZE", 10),
-		Iterations:           envInt("RL_ITERATIONS", 10000),
-		Epsilon:              envFloat("RL_EPSILON", 0.3),
-		Alpha:                envFloat("RL_ALPHA", 0.1),
-		RankFile:             envString("RL_RANK_FILE", "ranks.dat"),
-		PerformTraining:      envBool("RL_TRAINING_MODE", true),
-		CheckedSolutionsFile: envString("RL_CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
+		ProblemFile:          envString("PROBLEM_FILE", "CFLP.dat"),
+		DemandsFile:          envString("DEMANDS_FILE", "demands.dat"),
+		MaxFacilities:        envInt("MAX_FACILITIES", 3),
+		PopulationSize:       envInt("POPULATION_SIZE", 10),
+		Iterations:           envInt("ITERATIONS", 10000),
+		Epsilon:              envFloat("EPSILON", 0.3),
+		Alpha:                envFloat("ALPHA", 0.1),
+		RankFile:             envString("RANK_FILE", "ranks.dat"),
+		PerformTraining:      envBool("TRAINING_MODE", true),
+		CheckedSolutionsFile: envString("CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
 	}
 }
 

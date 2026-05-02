@@ -3,6 +3,9 @@ package report
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/HubertasVin/robust-facility-location/problem"
 	"github.com/HubertasVin/robust-facility-location/ranking"
@@ -12,6 +15,9 @@ type SolutionsTableLogger struct {
 	table          *SolutionsTable
 	behaviorCols   []string
 	behaviorColSet map[string]struct{}
+
+	mu   sync.Mutex
+	seen map[string]struct{}
 }
 
 func behaviorName(b problem.CustomerBehaviorModel) string {
@@ -42,7 +48,44 @@ func NewSolutionsTableLogger(filename string, behaviors []problem.CustomerBehavi
 		return nil, err
 	}
 
-	return &SolutionsTableLogger{table: t, behaviorCols: cols, behaviorColSet: colSet}, nil
+	return &SolutionsTableLogger{
+		table:          t,
+		behaviorCols:   cols,
+		behaviorColSet: colSet,
+		seen:           make(map[string]struct{}, 1024),
+	}, nil
+}
+
+func rowKey(locations []int, alignedObjectives []float64) string {
+	// Key ignores stage/iter so we de-dup the same solution even if re-evaluated.
+	var b strings.Builder
+	for i, loc := range locations {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(strconv.Itoa(loc))
+	}
+	b.WriteByte('|')
+	for i, v := range alignedObjectives {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		// Match the table's 6-decimal formatting.
+		b.WriteString(strconv.FormatFloat(v, 'f', 6, 64))
+	}
+	return b.String()
+}
+
+func (l *SolutionsTableLogger) recordIfNew(stage string, iter int, locations []int, alignedObjectives []float64) error {
+	key := rowKey(locations, alignedObjectives)
+	l.mu.Lock()
+	if _, ok := l.seen[key]; ok {
+		l.mu.Unlock()
+		return nil
+	}
+	l.seen[key] = struct{}{}
+	l.mu.Unlock()
+	return l.table.Record(stage, iter, locations, alignedObjectives)
 }
 
 // Record implements ranking.EvaluationLogger.
@@ -57,7 +100,7 @@ func (l *SolutionsTableLogger) Record(stage string, iter int, locations []int, b
 			}
 		}
 		if aligned {
-			return l.table.Record(stage, iter, locations, objectives)
+			return l.recordIfNew(stage, iter, locations, objectives)
 		}
 	}
 
@@ -79,7 +122,7 @@ func (l *SolutionsTableLogger) Record(stage string, iter int, locations []int, b
 		// If a value is missing, leave as 0.0 (still keeps rectangular TSV).
 	}
 
-	return l.table.Record(stage, iter, locations, alignedObjectives)
+	return l.recordIfNew(stage, iter, locations, alignedObjectives)
 }
 
 func (l *SolutionsTableLogger) Close() error {

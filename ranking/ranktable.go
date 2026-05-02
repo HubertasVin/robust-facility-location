@@ -1,7 +1,6 @@
 package ranking
 
 import (
-	"maps"
 	"bufio"
 	"fmt"
 	"os"
@@ -25,11 +24,6 @@ func (rt *RankTable) Get(loc int) float64 {
 	return rt.ranks[loc]
 }
 
-// Set sets the rank score for a location.
-func (rt *RankTable) Set(loc int, value float64) {
-	rt.ranks[loc] = value
-}
-
 // Update adjusts the rank for a location by delta.
 func (rt *RankTable) Update(loc int, delta float64) {
 	rt.ranks[loc] += delta
@@ -38,13 +32,6 @@ func (rt *RankTable) Update(loc int, delta float64) {
 // Len returns the number of entries.
 func (rt *RankTable) Len() int {
 	return len(rt.ranks)
-}
-
-// GetAll returns a copy of all ranks.
-func (rt *RankTable) GetAll() map[int]float64 {
-	result := make(map[int]float64, len(rt.ranks))
-	maps.Copy(result, rt.ranks)
-	return result
 }
 
 // MinMax returns the minimum and maximum rank values.

@@ -2,16 +2,11 @@ package problem
 
 // CustomerBehaviorModel computes utility (market share in %) of candidate
 // facilities X for one customer-choice rule.
+//
+// NOTE: X is expected to contain facility location IDs (elements of L), not
+// indices into L.
 type CustomerBehaviorModel interface {
 	Utility(p *Problem, X []int) float64
-}
-
-// UtilityFunc allows passing a function as a customer behavior model.
-type UtilityFunc func(p *Problem, X []int) float64
-
-// Utility implements CustomerBehaviorModel.
-func (f UtilityFunc) Utility(p *Problem, X []int) float64 {
-	return f(p, X)
 }
 
 // BinaryModel is the winner-takes-most customer behavior.
@@ -55,8 +50,8 @@ func (BinaryModel) Utility(p *Problem, X []int) float64 {
 		}
 
 		bestX := -1.0
-		for _, xIdx := range X {
-			attr := attractiveness(p.Distance(i, p.L[xIdx]), p.QL[xIdx])
+		for _, xLoc := range X {
+			attr := attractiveness(p.Distance(i, xLoc), p.QLByLoc[xLoc])
 			if attr > bestX {
 				bestX = attr
 			}
@@ -85,8 +80,8 @@ func (HuffModel) Utility(p *Problem, X []int) float64 {
 		}
 
 		var attrX float64
-		for _, xIdx := range X {
-			attrX += attractiveness(p.Distance(i, p.L[xIdx]), p.QL[xIdx])
+		for _, xLoc := range X {
+			attrX += attractiveness(p.Distance(i, xLoc), p.QLByLoc[xLoc])
 		}
 
 		denom := attrJ + attrX
@@ -114,8 +109,8 @@ func (PartiallyBinaryModel) Utility(p *Problem, X []int) float64 {
 		}
 
 		bestX := 0.0
-		for _, xIdx := range X {
-			attr := attractiveness(p.Distance(i, p.L[xIdx]), p.QL[xIdx])
+		for _, xLoc := range X {
+			attr := attractiveness(p.Distance(i, xLoc), p.QLByLoc[xLoc])
 			if attr > bestX {
 				bestX = attr
 			}
@@ -154,12 +149,12 @@ func (ParetoHuffModel) Utility(p *Problem, X []int) float64 {
 				ours:     false,
 			})
 		}
-		for _, xIdx := range X {
-			d := p.Distance(i, p.L[xIdx])
+		for _, xLoc := range X {
+			d := p.Distance(i, xLoc)
 			facilities = append(facilities, facility{
 				distance: d,
-				quality:  p.QL[xIdx],
-				attr:     attractiveness(d, p.QL[xIdx]),
+				quality:  p.QLByLoc[xLoc],
+				attr:     attractiveness(d, p.QLByLoc[xLoc]),
 				ours:     true,
 			})
 		}

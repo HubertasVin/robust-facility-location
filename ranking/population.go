@@ -1,15 +1,13 @@
 package ranking
 
 import (
-	"slices"
+	"math/rand/v2"
 	"sort"
-
-	"github.com/HubertasVin/robust-facility-location/rng"
 )
 
 // Individual represents a solution in the population.
 type Individual struct {
-	Locations []int   // Indices into L (candidate locations)
+	Locations []int   // Facility location IDs (elements of Problem.L)
 	Utility   float64 // Evaluated utility of this solution
 }
 
@@ -21,11 +19,6 @@ func (ind *Individual) Copy() *Individual {
 		Locations: locs,
 		Utility:   ind.Utility,
 	}
-}
-
-// Contains checks if the solution contains a specific location.
-func (ind *Individual) Contains(loc int) bool {
-	return slices.Contains(ind.Locations, loc)
 }
 
 // Population manages a collection of best solutions found.
@@ -83,25 +76,12 @@ func (p *Population) Best() *Individual {
 	return p.individuals[0]
 }
 
-// Worst returns the worst individual in the population, or nil if empty.
-func (p *Population) Worst() *Individual {
-	if len(p.individuals) == 0 {
-		return nil
-	}
-	return p.individuals[len(p.individuals)-1]
-}
-
 // RandomSelect returns a random individual from the population.
 func (p *Population) RandomSelect() *Individual {
 	if len(p.individuals) == 0 {
 		return nil
 	}
-	return p.individuals[rng.Intn(len(p.individuals))]
-}
-
-// GetAll returns all individuals in the population.
-func (p *Population) GetAll() []*Individual {
-	return p.individuals
+	return p.individuals[rand.IntN(len(p.individuals))]
 }
 
 // AverageUtility returns the average utility of the population.

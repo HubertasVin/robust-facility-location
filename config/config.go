@@ -20,26 +20,30 @@ type Config struct {
 	MaxFacilities int
 
 	// FLARC/PL parameters
-	PopulationSize int     // Maximum population size (n_P)
-	Iterations     int     // Number of iterations
-	Epsilon        float64 // Mutation probability
-	Alpha          float64 // Learning rate for rank updates
-	RankFile       string  // File to save/load rank scores
-	PerformTraining bool   // If true, run optimization; else use stored ranks
+	PopulationSize  int     // Maximum population size (n_P)
+	Iterations      int     // Number of iterations
+	Epsilon         float64 // Mutation probability
+	Alpha           float64 // Learning rate for rank updates
+	RankFile        string  // File to save/load rank scores
+	PerformTraining bool    // If true, run optimization; else use stored ranks
+
+	// Output / reporting
+	CheckedSolutionsFile string // TSV file with all evaluated solutions and objectives
 }
 
 // Load reads configuration from environment variables, falling back to defaults.
 func Load() *Config {
 	return &Config{
-		ProblemFile:     envString("RL_PROBLEM_FILE", "CFLP.dat"),
-		DemandsFile:     envString("RL_DEMANDS_FILE", "demands.dat"),
-		MaxFacilities:   envInt("RL_MAX_FACILITIES", 3),
-		PopulationSize:  envInt("RL_POPULATION_SIZE", 10),
-		Iterations:      envInt("RL_ITERATIONS", 10000),
-		Epsilon:         envFloat("RL_EPSILON", 0.3),
-		Alpha:           envFloat("RL_ALPHA", 0.1),
-		RankFile:        envString("RL_RANK_FILE", "ranks.dat"),
-		PerformTraining: envBool("RL_TRAINING_MODE", true),
+		ProblemFile:          envString("RL_PROBLEM_FILE", "CFLP.dat"),
+		DemandsFile:          envString("RL_DEMANDS_FILE", "demands.dat"),
+		MaxFacilities:        envInt("RL_MAX_FACILITIES", 3),
+		PopulationSize:       envInt("RL_POPULATION_SIZE", 10),
+		Iterations:           envInt("RL_ITERATIONS", 10000),
+		Epsilon:              envFloat("RL_EPSILON", 0.3),
+		Alpha:                envFloat("RL_ALPHA", 0.1),
+		RankFile:             envString("RL_RANK_FILE", "ranks.dat"),
+		PerformTraining:      envBool("RL_TRAINING_MODE", true),
+		CheckedSolutionsFile: envString("RL_CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
 	}
 }
 

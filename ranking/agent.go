@@ -3,11 +3,14 @@ package ranking
 import (
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"sort"
 
 	"github.com/HubertasVin/robust-facility-location/config"
 	"github.com/HubertasVin/robust-facility-location/problem"
-	"github.com/HubertasVin/robust-facility-location/rng"
+	"github.com/HubertasVin/robust-facility-location/solution"
+	"gonum.org/v1/gonum/floats"
+	"gonum.org/v1/gonum/stat"
 )
 
 // Agent implements the FLARC/PL algorithm for facility location.
@@ -16,7 +19,11 @@ type Agent struct {
 	Prob      *problem.Problem
 	RankTable *RankTable
 	Behavior  problem.CustomerBehaviorModel
-	baseline  float64
+	Logger    EvaluationLogger
+	// LogBehaviors, when set, controls which objectives are logged for each evaluated solution.
+	// If nil/empty, logging (if enabled) falls back to only the active Behavior.
+	LogBehaviors []problem.CustomerBehaviorModel
+	baseline     float64
 }
 
 // NewAgent creates a new Agent.
@@ -27,12 +34,21 @@ func NewAgent(cfg *config.Config, prob *problem.Problem, behavior problem.Custom
 	rt := NewRankTable()
 	rt.Initialize(prob.L)
 	return &Agent{
-		Cfg:       cfg,
-		Prob:      prob,
-		RankTable: rt,
-		Behavior:  behavior,
-		baseline:  0.0,
+		Cfg:          cfg,
+		Prob:         prob,
+		RankTable:    rt,
+		Behavior:     behavior,
+		Logger:       nil,
+		LogBehaviors: nil,
+		baseline:     0.0,
 	}
+}
+
+func (a *Agent) log(stage string, iter int, locations []int, behaviors []problem.CustomerBehaviorModel, objectives []float64) {
+	if a.Logger == nil {
+		return
+	}
+	_ = a.Logger.Record(stage, iter, locations, behaviors, objectives)
 }
 
 // Utility evaluates a solution's utility.
@@ -42,22 +58,20 @@ func (a *Agent) Utility(locations []int) float64 {
 
 // generateInitialSolution creates a random initial solution.
 func (a *Agent) generateInitialSolution() *Individual {
-	// Randomly select MaxFacilities locations
+	// Randomly select MaxFacilities locations (facility IDs from L)
 	n := len(a.Prob.L)
 	perm := make([]int, n)
-	for i := range perm {
-		perm[i] = i
-	}
-	// Fisher-Yates shuffle
-	for i := n - 1; i > 0; i-- {
-		j := rng.Intn(i + 1)
+	copy(perm, a.Prob.L)
+	rand.Shuffle(n, func(i, j int) {
 		perm[i], perm[j] = perm[j], perm[i]
-	}
+	})
 
-	locations := make([]int, a.Cfg.MaxFacilities)
-	for i := 0; i < a.Cfg.MaxFacilities; i++ {
-		locations[i] = perm[i]
+	maxFacilities := a.Cfg.MaxFacilities
+	if maxFacilities > n {
+		maxFacilities = n
 	}
+	locations := make([]int, maxFacilities)
+	copy(locations, perm[:maxFacilities])
 	sort.Ints(locations)
 
 	ind := &Individual{Locations: locations}
@@ -67,15 +81,15 @@ func (a *Agent) generateInitialSolution() *Individual {
 
 // generateInitialSolutionFromRanks creates an initial solution biased by ranks.
 func (a *Agent) generateInitialSolutionFromRanks() *Individual {
-	// Calculate sampling probabilities based on ranks
-	probs := a.calculateRankProbabilities(nil, -1)
-
 	locations := make([]int, 0, a.Cfg.MaxFacilities)
 	used := make(map[int]bool)
 
 	for len(locations) < a.Cfg.MaxFacilities {
+		// Calculate sampling probabilities based on ranks, excluding already used IDs.
+		probs := a.calculateRankProbabilities(used, -1)
+
 		// Sample a location based on probabilities
-		loc := a.sampleLocation(probs, used)
+		loc := a.sampleLocation(probs)
 		if loc == -1 {
 			break
 		}
@@ -90,10 +104,13 @@ func (a *Agent) generateInitialSolutionFromRanks() *Individual {
 }
 
 // calculateRankProbabilities computes sampling probabilities based on ranks.
-// If changingLoc >= 0, probabilities are weighted by inverse distance to that location.
-func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLoc int) []float64 {
+// If changingLocID >= 0, probabilities are weighted by inverse distance to that facility ID.
+func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLocID int) []float64 {
 	n := len(a.Prob.L)
 	probs := make([]float64, n)
+	if n == 0 {
+		return probs
+	}
 
 	// Get min and max ranks
 	minR, maxR := a.RankTable.MinMax()
@@ -110,83 +127,62 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLoc int
 		normalizedRanks[i] = (r - minR) / rangeR
 	}
 
-	// Find max normalized rank for softmax stability
-	maxNorm := 0.0
-	for _, r := range normalizedRanks {
-		if r > maxNorm {
-			maxNorm = r
-		}
-	}
+	// Find max normalized rank for softmax stability.
+	maxNorm := floats.Max(normalizedRanks)
 
-	// Calculate softmax with max shift
-	sumZ := 0.0
+	// Calculate softmax weights (max-shifted). Excluded candidates are assigned weight 0.
 	for i := range n {
-		if exclude != nil && exclude[a.Prob.L[i]] {
+		locID := a.Prob.L[i]
+		if exclude != nil && exclude[locID] {
+			probs[i] = 0
 			continue
 		}
 		expVal := math.Exp(normalizedRanks[i] - maxNorm)
-
-		// Weight by inverse distance if changing a specific location
-		if changingLoc >= 0 {
-			dist := a.Prob.Distance(a.Prob.L[i], a.Prob.L[changingLoc])
+		if changingLocID >= 0 {
+			dist := a.Prob.Distance(locID, changingLocID)
 			if dist > 0 {
 				expVal /= dist
 			}
 		}
-
 		probs[i] = expVal
-		sumZ += expVal
 	}
 
-	// Normalize probabilities
+	// Normalize probabilities.
+	sumZ := floats.Sum(probs)
 	if sumZ > 0 {
-		for i := range probs {
-			probs[i] /= sumZ
-		}
-	}
-
-	// Set excluded locations to 0
-	if exclude != nil {
-		for i := range n {
-			if exclude[a.Prob.L[i]] {
-				probs[i] = 0
-			}
-		}
+		floats.Scale(1.0/sumZ, probs)
 	}
 
 	return probs
 }
 
-// sampleLocation samples a location index based on probabilities.
-func (a *Agent) sampleLocation(probs []float64, exclude map[int]bool) int {
-	// Recalculate sum excluding already used locations
-	sum := 0.0
-	for i, p := range probs {
-		if exclude != nil && exclude[a.Prob.L[i]] {
-			continue
-		}
-		sum += p
+// sampleLocation samples and returns a candidate facility location ID (an element of L)
+// using the provided weights.
+//
+// probByIndex must be aligned with a.Prob.L. To exclude candidates, set their
+// weights to 0 before calling.
+func (a *Agent) sampleLocation(probByIndex []float64) int {
+	if len(probByIndex) != len(a.Prob.L) {
+		return -1
 	}
 
+	sum := floats.Sum(probByIndex)
 	if sum == 0 {
 		return -1
 	}
 
-	r := rng.Float64() * sum
+	r := rand.Float64() * sum
 	cumulative := 0.0
-	for i, p := range probs {
-		if exclude != nil && exclude[a.Prob.L[i]] {
-			continue
-		}
-		cumulative += p
+	for i, w := range probByIndex {
+		cumulative += w
 		if r <= cumulative {
 			return a.Prob.L[i]
 		}
 	}
 
-	// Fallback: return last non-excluded location
-	for i := len(probs) - 1; i >= 0; i-- {
-		if exclude == nil || !exclude[a.Prob.L[i]] {
+	// Fallback: return last candidate with non-zero weight.
+	for i := len(probByIndex) - 1; i >= 0; i-- {
+		if probByIndex[i] > 0 {
 			return a.Prob.L[i]
 		}
 	}
@@ -198,9 +194,9 @@ func (a *Agent) mutate(parent *Individual) *Individual {
 	child := parent.Copy()
 
 	// With probability epsilon, change a random location
-	if rng.Float64() < a.Cfg.Epsilon {
+	if rand.Float64() < a.Cfg.Epsilon {
 		// Select random position to change
-		pos := rng.Intn(len(child.Locations))
+		pos := rand.IntN(len(child.Locations))
 		oldLoc := child.Locations[pos]
 
 		// Build exclusion set (current solution locations)
@@ -209,27 +205,17 @@ func (a *Agent) mutate(parent *Individual) *Individual {
 			exclude[loc] = true
 		}
 
-		// Find index of oldLoc in L
-		oldLocIdx := -1
-		for i, l := range a.Prob.L {
-			if l == oldLoc {
-				oldLocIdx = i
-				break
-			}
-		}
-
 		// Calculate probabilities weighted by distance to the location being changed
-		probs := a.calculateRankProbabilities(exclude, oldLocIdx)
+		probs := a.calculateRankProbabilities(exclude, oldLoc)
 
 		// Sample new location
-		newLoc := a.sampleLocation(probs, exclude)
+		newLoc := a.sampleLocation(probs)
 		if newLoc != -1 && newLoc != oldLoc {
 			child.Locations[pos] = newLoc
 			sort.Ints(child.Locations)
 		}
 	}
 
-	child.Utility = a.Utility(child.Locations)
 	return child
 }
 
@@ -250,17 +236,26 @@ func (a *Agent) updateBaseline(utility float64) {
 // Run executes the FLARC/PL algorithm.
 func (a *Agent) Run() *Individual {
 	pop := NewPopulation(a.Cfg.PopulationSize)
+	behaviors := a.LogBehaviors
+	if len(behaviors) == 0 {
+		behaviors = []problem.CustomerBehaviorModel{a.Behavior}
+	}
 
 	// Initialize population with random solutions
 	// Use rank-biased initialization if we have prior knowledge
 	hasRanks := a.RankTable.Len() > 0
 	for pop.Len() < a.Cfg.PopulationSize {
 		var ind *Individual
-		if hasRanks && rng.Float64() < 0.5 {
+		if hasRanks && rand.Float64() < 0.5 {
 			ind = a.generateInitialSolutionFromRanks()
 		} else {
 			ind = a.generateInitialSolution()
 		}
+
+		// Log objectives for the agent's behavior (or more, if the caller supplies more in robust mode).
+		objectives := a.evaluateMultiObjective(ind.Locations, behaviors)
+		a.log("train:init", -1, ind.Locations, behaviors, objectives)
+
 		pop.Add(ind)
 	}
 
@@ -270,12 +265,19 @@ func (a *Agent) Run() *Individual {
 	bestEver := pop.Best().Copy()
 
 	// Main loop
+	reportEvery := a.Cfg.Iterations / 10
+	if reportEvery < 1 {
+		reportEvery = 1
+	}
 	for iter := 0; iter < a.Cfg.Iterations; iter++ {
 		// Select random solution from population
 		parent := pop.RandomSelect()
 
 		// Create offspring through mutation
 		child := a.mutate(parent)
+		child.Utility = a.Utility(child.Locations)
+		objectives := a.evaluateMultiObjective(child.Locations, behaviors)
+		a.log("train:iter", iter, child.Locations, behaviors, objectives)
 
 		// Update ranks based on child performance
 		a.updateRanks(child)
@@ -292,7 +294,7 @@ func (a *Agent) Run() *Individual {
 		}
 
 		// Progress reporting
-		if (iter+1)%(a.Cfg.Iterations/10) == 0 {
+		if (iter+1)%reportEvery == 0 {
 			fmt.Printf("Iteration %d: Best=%.6f%%, PopBest=%.6f%%, Baseline=%.6f%%\n",
 				iter+1, bestEver.Utility, pop.Best().Utility, a.baseline)
 		}
@@ -301,15 +303,91 @@ func (a *Agent) Run() *Individual {
 	return bestEver
 }
 
-// GetOptimalSolution returns the best solution found using current ranks.
-func (a *Agent) GetOptimalSolution() []int {
-	// Generate multiple solutions and return the best
-	best := a.generateInitialSolutionFromRanks()
-	for range 100 {
-		candidate := a.generateInitialSolutionFromRanks()
-		if candidate.Utility > best.Utility {
-			best = candidate
+// evaluateMultiObjective evaluates a solution against multiple customer behavior models
+func (a *Agent) evaluateMultiObjective(locations []int, behaviors []problem.CustomerBehaviorModel) []float64 {
+	objectives := make([]float64, len(behaviors))
+	for i, behavior := range behaviors {
+		objectives[i] = behavior.Utility(a.Prob, locations)
+	}
+	return objectives
+}
+
+func (a *Agent) createMultiObjectiveSolutionWithObjectives(locations []int, objectives []float64) *solution.Solution {
+	sortedLocs := make([]int, len(locations))
+	copy(sortedLocs, locations)
+	sort.Ints(sortedLocs)
+
+	sol := solution.NewSolution(len(sortedLocs), len(objectives))
+	copy(sol.Locations, sortedLocs)
+	copy(sol.Objectives, objectives)
+	return sol
+}
+
+// FindRobustSolution finds a robust solution using knee point identification
+func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *solution.Solution {
+	if len(behaviors) == 0 {
+		return nil
+	}
+
+	pop := NewPopulation(a.Cfg.PopulationSize)
+	paretoFront := solution.NewParetoFront()
+
+	// Initialize population (utility = mean across objectives).
+	for pop.Len() < a.Cfg.PopulationSize {
+		var ind *Individual
+		if rand.Float64() < 0.5 {
+			ind = a.generateInitialSolutionFromRanks()
+		} else {
+			ind = a.generateInitialSolution()
+		}
+
+		objectives := a.evaluateMultiObjective(ind.Locations, behaviors)
+		ind.Utility = stat.Mean(objectives, nil)
+		a.log("robust:init", -1, ind.Locations, behaviors, objectives)
+		pop.Add(ind)
+		paretoFront.AddSolution(a.createMultiObjectiveSolutionWithObjectives(ind.Locations, objectives))
+	}
+
+	// Initialize baseline from population average (mean-objective score).
+	a.baseline = pop.AverageUtility()
+	bestMean := pop.Best().Copy()
+
+	reportEvery := a.Cfg.Iterations / 10
+	if reportEvery < 1 {
+		reportEvery = 1
+	}
+
+	// Main loop: mutate, re-rank, and accumulate non-dominated solutions.
+	for iter := 0; iter < a.Cfg.Iterations; iter++ {
+		parent := pop.RandomSelect()
+		child := a.mutate(parent)
+
+		objectives := a.evaluateMultiObjective(child.Locations, behaviors)
+		child.Utility = stat.Mean(objectives, nil)
+		a.log("robust:iter", iter, child.Locations, behaviors, objectives)
+
+		a.updateRanks(child)
+		a.updateBaseline(child.Utility)
+		pop.Add(child)
+		paretoFront.AddSolution(a.createMultiObjectiveSolutionWithObjectives(child.Locations, objectives))
+
+		if child.Utility > bestMean.Utility {
+			bestMean = child.Copy()
+		}
+
+		if (iter+1)%reportEvery == 0 {
+			fmt.Printf("Iteration %d: Pareto=%d, BestMean=%.6f%%, Baseline=%.6f%%\n",
+				iter+1, paretoFront.Len(), bestMean.Utility, a.baseline)
 		}
 	}
-	return best.Locations
+
+	kneePoint := paretoFront.FindKneePoint()
+	if kneePoint == nil {
+		return nil
+	}
+
+	fmt.Printf("Pareto front contains %d solutions\n", paretoFront.Len())
+	fmt.Printf("Knee point objectives: %v\n", kneePoint.Objectives)
+
+	return kneePoint
 }

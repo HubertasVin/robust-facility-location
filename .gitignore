@@ -8,6 +8,13 @@
 *.so
 *.dylib
 
+# Local build artifacts
+robust-flp
+
+# Generated files
+checked_solutions.tsv
+ranks.dat
+
 # Test binary, built with `go test -c`
 *.test
 

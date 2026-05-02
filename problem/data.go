@@ -28,6 +28,10 @@ type Problem struct {
 	L  []int
 	QL []int
 
+	// Quality lookups by facility location ID (value stored in J/L).
+	QJByLoc map[int]int
+	QLByLoc map[int]int
+
 	// Lower-triangular distance matrix (Haversine)
 	DM [][]float64
 }
@@ -102,6 +106,16 @@ func (p *Problem) loadFacilities(filename string) error {
 		if p.QL[i], err = readInt(); err != nil {
 			return err
 		}
+	}
+
+	// Build quality lookup maps (ID -> quality).
+	p.QJByLoc = make(map[int]int, len(p.J))
+	for i, loc := range p.J {
+		p.QJByLoc[loc] = p.QJ[i]
+	}
+	p.QLByLoc = make(map[int]int, len(p.L))
+	for i, loc := range p.L {
+		p.QLByLoc[loc] = p.QL[i]
 	}
 
 	return scanner.Err()

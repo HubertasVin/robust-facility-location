@@ -29,6 +29,7 @@ type Config struct {
 
 	// Output / reporting
 	CheckedSolutionsFile string // TSV file with all evaluated solutions and objectives
+	JSONMode             bool   // If true, output results as JSON to stdout
 }
 
 // Load reads configuration from environment variables, falling back to defaults.
@@ -44,6 +45,7 @@ func Load() *Config {
 		RankFile:             envString("RANK_FILE", "ranks.dat"),
 		PerformTraining:      envBool("TRAINING_MODE", true),
 		CheckedSolutionsFile: envString("CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
+		JSONMode:             envBool("JSON_MODE", false),
 	}
 }
 

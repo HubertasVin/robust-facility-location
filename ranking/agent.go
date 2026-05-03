@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"os"
 	"sort"
 
 	"github.com/HubertasVin/robust-facility-location/config"
@@ -23,7 +24,9 @@ type Agent struct {
 	// LogBehaviors, when set, controls which objectives are logged for each evaluated solution.
 	// If nil/empty, logging (if enabled) falls back to only the active Behavior.
 	LogBehaviors []problem.CustomerBehaviorModel
-	baseline     float64
+	// ParetoFront is populated after FindRobustSolution is called
+	ParetoFront *solution.ParetoFront
+	baseline    float64
 }
 
 // NewAgent creates a new Agent.
@@ -295,7 +298,7 @@ func (a *Agent) Run() *Individual {
 
 		// Progress reporting
 		if (iter+1)%reportEvery == 0 {
-			fmt.Printf("Iteration %d: Best=%.6f%%, PopBest=%.6f%%, Baseline=%.6f%%\n",
+			fmt.Fprintf(os.Stderr, "Iteration %d: Best=%.6f%%, PopBest=%.6f%%, Baseline=%.6f%%\n",
 				iter+1, bestEver.Utility, pop.Best().Utility, a.baseline)
 		}
 	}
@@ -376,18 +379,20 @@ func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *s
 		}
 
 		if (iter+1)%reportEvery == 0 {
-			fmt.Printf("Iteration %d: Pareto=%d, BestMean=%.6f%%, Baseline=%.6f%%\n",
+			fmt.Fprintf(os.Stderr, "Iteration %d: Pareto=%d, BestMean=%.6f%%, Baseline=%.6f%%\n",
 				iter+1, paretoFront.Len(), bestMean.Utility, a.baseline)
 		}
 	}
+
+	a.ParetoFront = paretoFront
 
 	kneePoint := paretoFront.FindKneePoint()
 	if kneePoint == nil {
 		return nil
 	}
 
-	fmt.Printf("Pareto front contains %d solutions\n", paretoFront.Len())
-	fmt.Printf("Knee point objectives: %v\n", kneePoint.Objectives)
+	fmt.Fprintf(os.Stderr, "Pareto front contains %d solutions\n", paretoFront.Len())
+	fmt.Fprintf(os.Stderr, "Knee point objectives: %v\n", kneePoint.Objectives)
 
 	return kneePoint
 }

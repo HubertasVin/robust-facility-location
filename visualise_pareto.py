@@ -4,13 +4,34 @@
 import sys
 import numpy as np
 import matplotlib
-try:
-    matplotlib.use('Qt5Agg')
-except:
-    try:
-        matplotlib.use('TkAgg')
-    except:
-        matplotlib.use('Agg')
+
+def _set_backend():
+    """Set matplotlib backend with proper fallback."""
+    backends_to_try = ['Qt5Agg', 'TkAgg', 'Agg']
+    for backend in backends_to_try:
+        try:
+            matplotlib.use(backend, force=True)
+            # Test if the backend can actually be imported
+            import importlib
+            if backend == 'Qt5Agg':
+                # Try to import Qt binding
+                try:
+                    importlib.import_module('PyQt5')
+                except ImportError:
+                    try:
+                        importlib.import_module('PySide2')
+                    except ImportError:
+                        raise ImportError("No Qt binding available")
+            elif backend == 'TkAgg':
+                importlib.import_module('tkinter')
+            # If we get here, the backend should work
+            return
+        except (ImportError, ModuleNotFoundError):
+            continue
+    # Fallback to Agg if nothing else works
+    matplotlib.use('Agg', force=True)
+
+_set_backend()
 import matplotlib.pyplot as plt
 import csv
 from dataclasses import dataclass

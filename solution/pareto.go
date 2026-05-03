@@ -24,7 +24,11 @@ func (pf *ParetoFront) AddSolution(solution *Solution) bool {
 	// Check if solution is dominated by any solution in the front
 	for _, existing := range pf.Solutions {
 		if existing.Dominates(solution) {
-			return false // Solution is dominated, don't add
+			return false
+		}
+		// Skip if solution has identical objectives to an existing one
+		if objectivesEqual(existing.Objectives, solution.Objectives) {
+			return false
 		}
 	}
 
@@ -39,6 +43,19 @@ func (pf *ParetoFront) AddSolution(solution *Solution) bool {
 	// Add the new solution
 	nonDominated = append(nonDominated, solution)
 	pf.Solutions = nonDominated
+	return true
+}
+
+// objectivesEqual checks if two objective slices are equal element-wise
+func objectivesEqual(a, b []float64) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
 	return true
 }
 

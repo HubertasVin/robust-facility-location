@@ -1,16 +1,25 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/HubertasVin/robust-facility-location/config"
 	"github.com/HubertasVin/robust-facility-location/problem"
 	"github.com/HubertasVin/robust-facility-location/ranking"
 	"github.com/HubertasVin/robust-facility-location/report"
+	"github.com/HubertasVin/robust-facility-location/solution"
 )
 
-// AllBehaviorModels returns all available customer behavior models
+type JSONResult struct {
+	MaxFacilities int                  `json:"max_facilities"`
+	Iterations    int                  `json:"iterations"`
+	KneePoint     *solution.Solution   `json:"knee_point"`
+	ParetoFront   []*solution.Solution `json:"pareto_front"`
+}
+
 func AllBehaviorModels() []problem.CustomerBehaviorModel {
 	return []problem.CustomerBehaviorModel{
 		problem.HuffModel{},
@@ -28,13 +37,9 @@ func main() {
 	}
 
 	behaviorModel := problem.HuffModel{}
-	// Example alternatives:
-	// behaviorModel := problem.PartiallyBinaryModel{}
-	// behaviorModel := problem.ParetoHuffModel{}
 
 	agent := ranking.NewAgent(cfg, prob, behaviorModel)
 
-	// Write a table of every evaluated solution (locations + objectives per behavior model).
 	behaviors := AllBehaviorModels()
 	tableLogger, err := report.NewSolutionsTableLogger(cfg.CheckedSolutionsFile, behaviors)
 	if err != nil {
@@ -48,11 +53,10 @@ func main() {
 	agent.Logger = tableLogger
 	agent.LogBehaviors = behaviors
 
-	// Try to load existing ranks (transfers experience across instances)
 	_ = agent.RankTable.Load(cfg.RankFile)
 
 	if cfg.PerformTraining {
-		fmt.Println("\n=== Running FLARC/PL Optimization ===")
+		fmt.Fprintln(os.Stderr, "=== Running FLARC/PL Optimization ===")
 		best := agent.Run()
 
 		if err := agent.RankTable.Save(cfg.RankFile); err != nil {
@@ -65,20 +69,41 @@ func main() {
 		}
 		fmt.Printf("(%.6f%%)\n", best.Utility)
 	} else {
-		// Find robust solution using knee point identification
-		fmt.Println("\n=== Finding Robust Solution (Knee Point) ===")
+		fmt.Fprintln(os.Stderr, "=== Finding Robust Solution (Knee Point) ===")
 		robustSolution := agent.FindRobustSolution(behaviors)
 		if robustSolution == nil {
 			log.Fatalf("Failed to find robust solution")
 		}
 
-		fmt.Printf("\nRobust solution (knee point) locations: ")
-		for _, loc := range robustSolution.Locations {
-			fmt.Printf("%d ", loc)
+		if cfg.JSONMode {
+			outputJSON(cfg, robustSolution, agent.ParetoFront)
+		} else {
+			fmt.Printf("\nRobust solution (knee point) locations: ")
+			for _, loc := range robustSolution.Locations {
+				fmt.Printf("%d ", loc)
+			}
+			fmt.Printf("\nObjective values (Huff, PartiallyBinary, ParetoHuff): %.6f%%, %.6f%%, %.6f%%\n",
+				robustSolution.Objectives[0],
+				robustSolution.Objectives[1],
+				robustSolution.Objectives[2])
 		}
-		fmt.Printf("\nObjective values (Huff, PartiallyBinary, ParetoHuff): %.6f%%, %.6f%%, %.6f%%\n",
-			robustSolution.Objectives[0],
-			robustSolution.Objectives[1],
-			robustSolution.Objectives[2])
+	}
+}
+
+func outputJSON(cfg *config.Config, kneePoint *solution.Solution, pf *solution.ParetoFront) {
+	result := JSONResult{
+		MaxFacilities: cfg.MaxFacilities,
+		Iterations:    cfg.Iterations,
+		KneePoint:     kneePoint,
+	}
+
+	if pf != nil {
+		result.ParetoFront = pf.Solutions
+	}
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(result); err != nil {
+		log.Fatalf("Failed to encode JSON: %v", err)
 	}
 }

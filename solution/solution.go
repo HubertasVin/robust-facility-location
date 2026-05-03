@@ -8,8 +8,8 @@ import (
 
 // Solution represents a facility location solution.
 type Solution struct {
-	Locations  []int
-	Objectives []float64
+	Locations  []int     `json:"locations"`
+	Objectives []float64 `json:"objectives"`
 }
 
 // NewSolution creates a Solution with pre-allocated slices.

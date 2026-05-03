@@ -68,7 +68,7 @@ func (rt *RankTable) Save(filename string) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	fmt.Printf("RankTable saved to %s\n", filename)
+	fmt.Fprintf(os.Stderr, "RankTable saved to %s\n", filename)
 	return nil
 }
 
@@ -96,7 +96,7 @@ func (rt *RankTable) Load(filename string) error {
 		}
 		rt.ranks[loc] = rank
 	}
-	fmt.Printf("RankTable loaded from %s (%d entries)\n", filename, len(rt.ranks))
+	fmt.Fprintf(os.Stderr, "RankTable loaded from %s (%d entries)\n", filename, len(rt.ranks))
 	return scanner.Err()
 }
 

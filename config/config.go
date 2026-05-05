@@ -8,31 +8,25 @@ import (
 )
 
 func init() {
-	// Load .env file if it exists (silently ignore if not found)
 	_ = godotenv.Load()
 }
 
-// Config holds all configurable parameters for the FLARC/PL facility location solver.
 type Config struct {
-	// Problem parameters
 	ProblemFile   string
 	DemandsFile   string
 	MaxFacilities int
 
-	// FLARC/PL parameters
-	PopulationSize  int     // Maximum population size (n_P)
-	Iterations      int     // Number of iterations
-	Epsilon         float64 // Mutation probability
-	Alpha           float64 // Learning rate for rank updates
-	RankFile        string  // File to save/load rank scores
-	PerformTraining bool    // If true, run optimization; else use stored ranks
+	PopulationSize  int
+	Iterations      int
+	Epsilon         float64
+	Alpha           float64
+	RankFile        string
+	PerformTraining bool
 
-	// Output / reporting
-	CheckedSolutionsFile string // TSV file with all evaluated solutions and objectives
-	JSONMode             bool   // If true, output results as JSON to stdout
+	CheckedSolutionsFile string
+	JSONMode             bool
 }
 
-// Load reads configuration from environment variables, falling back to defaults.
 func Load() *Config {
 	return &Config{
 		ProblemFile:          envString("PROBLEM_FILE", "CFLP.dat"),

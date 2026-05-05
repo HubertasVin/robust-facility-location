@@ -209,9 +209,9 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     padding = (data_max - data_min) * 0.15
     min_coords, max_coords = data_min - padding, data_max + padding
     
-    ax.set_xlim(min_coords[0], max_coords[0])
-    ax.set_ylim(min_coords[1], max_coords[1])
-    ax.set_zlim(min_coords[2], max_coords[2])
+    ax.set_xlim(0, max_coords[0])
+    ax.set_ylim(0, max_coords[1])
+    ax.set_zlim(0, max_coords[2])
     
     hyperplane_vertices = create_hyperplane_vertices(extreme_coords, min_coords, max_coords)
     if len(hyperplane_vertices) >= 3:
@@ -339,7 +339,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
 
 
 if __name__ == '__main__':
-    filepath = sys.argv[1] if len(sys.argv) > 1 else 'checked_solutions.tsv'
+    filepath = sys.argv[1] if len(sys.argv) > 1 else '../checked_solutions.tsv'
     output_path = sys.argv[2] if len(sys.argv) > 2 else None
     print(f"Loading solutions from {filepath}...")
     visualize(filepath, output_path)

@@ -145,12 +145,13 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLocID i
 			}
 		}
 		probs[i] = expVal
-	}
 
-	// Normalize probabilities.
-	sumZ := floats.Sum(probs)
-	if sumZ > 0 {
-		floats.Scale(1.0/sumZ, probs)
+	}
+	
+	// Normalize probabilities (probs[i] /= sumProbs).
+	sumProbs := floats.Sum(probs)
+	if sumProbs > 0 {
+		floats.Scale(1.0/sumProbs, probs)
 	}
 
 	return probs
@@ -158,9 +159,6 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLocID i
 
 // sampleLocation samples and returns a candidate facility location ID (an element of L)
 // using the provided weights.
-//
-// probByIndex must be aligned with a.Prob.L. To exclude candidates, set their
-// weights to 0 before calling.
 func (a *Agent) sampleLocation(probByIndex []float64) int {
 	if len(probByIndex) != len(a.Prob.L) {
 		return -1

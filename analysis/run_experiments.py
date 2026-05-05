@@ -32,6 +32,7 @@ def run_one(iterations, facilities, run_index):
             text=True,
             env=env,
             timeout=1800,
+            cwd="..",
         )
         if proc.returncode != 0:
             return {

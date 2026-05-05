@@ -1,6 +1,6 @@
 """Analyze raw_results.json and compute metrics for each configuration.
 
-Produces metrics_results.csv with columns:
+Produces robustness_metrics.csv with columns:
 max_facilities, iterations, solution_stability, hypervolume, price_of_robustness,
 optimality_gap, coefficient_of_variation
 """
@@ -202,7 +202,7 @@ def main():
     if len(sys.argv) >= 3:
         output_file = sys.argv[2]
     else:
-        output_file = "metrics_results.csv"
+        output_file = "robustness_metrics.csv"
 
     with open(input_file, "r") as f:
         all_results = json.load(f)
@@ -231,18 +231,16 @@ def main():
         rows.append({
             "max_facilities": fac,
             "iterations": it,
-            "sample_count": n_valid,
-            "solution_stability": round(solution_stability(valid_runs), 6),
-            "hypervolume": round(hv, 6),
-            "price_of_robustness": round(price_of_robustness(valid_runs, fac), 6),
-            "optimality_gap": round(optimality_gap(valid_runs, fac), 6),
-            "coefficient_of_variation": round(coefficient_of_variation(valid_runs), 6),
+            "solution_stability": round(solution_stability(valid_runs), 6) + 0.0,
+            "hypervolume": round(hv, 6) + 0.0,
+            "price_of_robustness": round(price_of_robustness(valid_runs, fac), 6) + 0.0,
+            "optimality_gap": round(optimality_gap(valid_runs, fac), 6) + 0.0,
+            "coefficient_of_variation": round(coefficient_of_variation(valid_runs), 6) + 0.0,
         })
 
     fieldnames = [
         "max_facilities",
         "iterations",
-        "sample_count",
         "solution_stability",
         "hypervolume",
         "price_of_robustness",

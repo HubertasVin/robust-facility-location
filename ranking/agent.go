@@ -130,17 +130,14 @@ func (a *Agent) calculateRankProbabilities(exclude map[int]bool, changingLocID i
 		normalizedRanks[i] = (r - minR) / rangeR
 	}
 
-	// Find max normalized rank for softmax stability.
-	maxNorm := floats.Max(normalizedRanks)
-
-	// Calculate softmax weights (max-shifted). Excluded candidates are assigned weight 0.
+	// Calculate softmax weights. Excluded candidates are assigned weight 0.
 	for i := range n {
 		locID := a.Prob.L[i]
 		if exclude != nil && exclude[locID] {
 			probs[i] = 0
 			continue
 		}
-		expVal := math.Exp(normalizedRanks[i] - maxNorm)
+		expVal := math.Exp(normalizedRanks[i])
 		if changingLocID >= 0 {
 			dist := a.Prob.Distance(locID, changingLocID)
 			if dist > 0 {

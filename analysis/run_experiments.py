@@ -32,7 +32,6 @@ def run_one(iterations, facilities, run_index):
             text=True,
             env=env,
             timeout=1800,
-            cwd="..",
         )
         if proc.returncode != 0:
             return {
@@ -104,7 +103,7 @@ def main():
                 })
                 completed += 1
 
-    output_file = "raw_results.json"
+    output_file = "analysis/raw_results.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
 

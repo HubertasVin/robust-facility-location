@@ -190,7 +190,9 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     other_mask = np.ones(len(pareto_indices), dtype=bool)
     other_mask[knee_idx] = False
     other_mask[extreme_indices] = False
-    other_pareto_indices = np.where(other_mask)[0][::2]
+    other_pareto_indices = np.where(other_mask)[0]
+    if len(other_pareto_indices) > 4:
+        other_pareto_indices = other_pareto_indices[::2]
     
     fig = plt.figure(figsize=(14, 11))
     ax = fig.add_subplot(111, projection='3d')
@@ -209,9 +211,9 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     padding = (data_max - data_min) * 0.15
     min_coords, max_coords = data_min - padding, data_max + padding
     
-    ax.set_xlim(0, max_coords[0])
-    ax.set_ylim(0, max_coords[1])
-    ax.set_zlim(0, max_coords[2])
+    ax.set_xlim(max_coords[0], min_coords[0])
+    ax.set_ylim(min_coords[1], max_coords[1])
+    ax.set_zlim(min_coords[2], max_coords[2])
     
     hyperplane_vertices = create_hyperplane_vertices(extreme_coords, min_coords, max_coords)
     if len(hyperplane_vertices) >= 3:

@@ -1,4 +1,4 @@
-.PHONY: build_run visualise setup_venv create_env clean
+.PHONY: build_run visualise visualise_2d setup_venv create_env clean
 
 setup: create_env setup_venv
 
@@ -7,6 +7,9 @@ build_run:
 
 visualise: setup_venv
 	./venv/bin/python analysis/visualise_pareto.py checked_solutions.tsv analysis/pareto_visualisation.png
+
+visualise_2d: setup_venv
+	./venv/bin/python analysis/visualise_2d.py checked_solutions.tsv analysis/pareto_2d.png
 
 setup_venv: venv/bin/activate
 

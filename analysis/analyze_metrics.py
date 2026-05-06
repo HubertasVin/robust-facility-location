@@ -15,7 +15,7 @@ from itertools import combinations
 BEST_KNOWN = {
     3: [21.800306, 29.292358, 23.080654],
     5: [27.748007, 35.009718, 29.088894],
-    10: [35.011573, 40.522524, 36.247860],
+    10: [35.011573, 40.522524, 36.247860],d
 }
 
 
@@ -195,14 +195,14 @@ def ideal_point_from_runs(runs):
 
 def main():
     if len(sys.argv) < 2:
-        input_file = "raw_results.json"
+        input_file = "analysis/raw_results.json"
     else:
         input_file = sys.argv[1]
 
     if len(sys.argv) >= 3:
         output_file = sys.argv[2]
     else:
-        output_file = "robustness_metrics.csv"
+        output_file = "analysis/robustness_metrics.csv"
 
     with open(input_file, "r") as f:
         all_results = json.load(f)

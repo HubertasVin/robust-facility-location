@@ -20,7 +20,13 @@ type JSONResult struct {
 	ParetoFront   []*solution.Solution `json:"pareto_front"`
 }
 
-func AllBehaviorModels() []problem.CustomerBehaviorModel {
+func AllBehaviorModels(twoDMode bool) []problem.CustomerBehaviorModel {
+	if twoDMode {
+		return []problem.CustomerBehaviorModel{
+			problem.HuffModel{},
+			problem.PartiallyBinaryModel{},
+		}
+	}
 	return []problem.CustomerBehaviorModel{
 		problem.HuffModel{},
 		problem.PartiallyBinaryModel{},
@@ -40,7 +46,7 @@ func main() {
 
 	agent := ranking.NewAgent(cfg, prob, behaviorModel)
 
-	behaviors := AllBehaviorModels()
+	behaviors := AllBehaviorModels(cfg.TwoDMode)
 	tableLogger, err := report.NewSolutionsTableLogger(cfg.CheckedSolutionsFile, behaviors)
 	if err != nil {
 		log.Fatalf("Failed to create checked-solutions table file: %v", err)
@@ -82,10 +88,16 @@ func main() {
 			for _, loc := range robustSolution.Locations {
 				fmt.Printf("%d ", loc)
 			}
-			fmt.Printf("\nObjective values (Huff, PartiallyBinary, ParetoHuff): %.6f%%, %.6f%%, %.6f%%\n",
-				robustSolution.Objectives[0],
-				robustSolution.Objectives[1],
-				robustSolution.Objectives[2])
+			if cfg.TwoDMode {
+				fmt.Printf("\nObjective values (Huff, PartiallyBinary): %.6f%%, %.6f%%\n",
+					robustSolution.Objectives[0],
+					robustSolution.Objectives[1])
+			} else {
+				fmt.Printf("\nObjective values (Huff, PartiallyBinary, ParetoHuff): %.6f%%, %.6f%%, %.6f%%\n",
+					robustSolution.Objectives[0],
+					robustSolution.Objectives[1],
+					robustSolution.Objectives[2])
+			}
 		}
 	}
 }

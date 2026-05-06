@@ -22,15 +22,15 @@ type Problem struct {
 
 	// Pre-existing facilities: indices and qualities
 	J  []int
-	QJ []int
+	QJ []float64
 
 	// Candidate locations: indices and qualities
 	L  []int
-	QL []int
+	QL []float64
 
 	// Quality lookups by facility location ID (value stored in J/L).
-	QJByLoc map[int]int
-	QLByLoc map[int]int
+	QJByLoc map[int]float64
+	QLByLoc map[int]float64
 
 	// Lower-triangular distance matrix (Haversine)
 	DM [][]float64
@@ -82,14 +82,20 @@ func (p *Problem) loadFacilities(filename string) error {
 		return fmt.Errorf("reading J count: %w", err)
 	}
 	p.J = make([]int, n)
-	p.QJ = make([]int, n)
+	p.QJ = make([]float64, n)
 	for i := 0; i < n; i++ {
 		if p.J[i], err = readInt(); err != nil {
 			return err
 		}
-		if p.QJ[i], err = readInt(); err != nil {
+		// Read quality as float64
+		if !scanner.Scan() {
+			return fmt.Errorf("unexpected end of file reading QJ")
+		}
+		q, err := strconv.ParseFloat(strings.TrimSpace(scanner.Text()), 64)
+		if err != nil {
 			return err
 		}
+		p.QJ[i] = q
 	}
 
 	// Candidate locations
@@ -98,22 +104,28 @@ func (p *Problem) loadFacilities(filename string) error {
 		return fmt.Errorf("reading L count: %w", err)
 	}
 	p.L = make([]int, n)
-	p.QL = make([]int, n)
+	p.QL = make([]float64, n)
 	for i := 0; i < n; i++ {
 		if p.L[i], err = readInt(); err != nil {
 			return err
 		}
-		if p.QL[i], err = readInt(); err != nil {
+		// Read quality as float64
+		if !scanner.Scan() {
+			return fmt.Errorf("unexpected end of file reading QL")
+		}
+		q, err := strconv.ParseFloat(strings.TrimSpace(scanner.Text()), 64)
+		if err != nil {
 			return err
 		}
+		p.QL[i] = q
 	}
 
 	// Build quality lookup maps (ID -> quality).
-	p.QJByLoc = make(map[int]int, len(p.J))
+	p.QJByLoc = make(map[int]float64, len(p.J))
 	for i, loc := range p.J {
 		p.QJByLoc[loc] = p.QJ[i]
 	}
-	p.QLByLoc = make(map[int]int, len(p.L))
+	p.QLByLoc = make(map[int]float64, len(p.L))
 	for i, loc := range p.L {
 		p.QLByLoc[loc] = p.QL[i]
 	}

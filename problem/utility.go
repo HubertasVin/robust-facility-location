@@ -23,8 +23,8 @@ type PartiallyBinaryModel struct{}
 // then applies Huff proportional allocation on the Pareto set.
 type ParetoHuffModel struct{}
 
-func attractiveness(distance float64, quality int) float64 {
-	return float64(quality) / (distance + 1.0)
+func attractiveness(distance float64, quality float64) float64 {
+	return quality / (distance + 1.0)
 }
 
 func toPercent(utility, total float64) float64 {
@@ -129,7 +129,7 @@ func (PartiallyBinaryModel) Utility(p *Problem, X []int) float64 {
 func (ParetoHuffModel) Utility(p *Problem, X []int) float64 {
 	type facility struct {
 		distance float64
-		quality  int
+		quality  float64
 		attr     float64
 		ours     bool
 	}

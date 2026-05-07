@@ -12,10 +12,10 @@ import sys
 import time
 from itertools import product
 
-ITERATIONS_LIST = [3000, 15000, 50000]
+ITERATIONS_LIST = [8000, 16000, 32000, 64000]
 FACILITIES_LIST = [3, 5, 10]
-SAMPLES = 20
-MAX_WORKERS = min(os.cpu_count() or 4, 10)
+SAMPLES = 50
+MAX_WORKERS = min(os.cpu_count() or 4, 12)
 
 def run_one(iterations, facilities, run_index):
     env = os.environ.copy()

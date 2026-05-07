@@ -115,6 +115,14 @@ def std_dev(values):
     return math.sqrt(sum((v - m) ** 2 for v in values) / (len(values) - 1))
 
 
+def smart_round(val, precision=6):
+    if abs(val) < 1e-6:
+        return 0.0
+    if abs(val - 1.0) < 1e-6:
+        return 1.0
+    return round(val, precision)
+
+
 def coefficient_of_variation(runs):
     objectives_per_run = []
     for r in runs:
@@ -168,7 +176,7 @@ def optimality_gap(runs, facilities):
                     f_robust = obj[dim]
                     f_best = best[dim]
                     if f_robust != 0:
-                        gaps.append((f_robust - f_best) / f_robust * 100)
+                        gaps.append(abs((f_robust - f_best) / f_robust * 100))
 
     return mean(gaps) if gaps else 0.0
 
@@ -239,11 +247,11 @@ def main():
         rows.append({
             "max_facilities": fac,
             "iterations": it,
-            "solution_stability": round(solution_stability(valid_runs), 6) + 0.0,
-            "hypervolume": round(hv, 6) + 0.0,
-            "price_of_robustness": round(price_of_robustness(valid_runs, fac), 6) + 0.0,
-            "optimality_gap": round(optimality_gap(valid_runs, fac), 6) + 0.0,
-            "coefficient_of_variation": round(coefficient_of_variation(valid_runs), 6) + 0.0,
+            "solution_stability": smart_round(solution_stability(valid_runs)),
+            "hypervolume": smart_round(hv),
+            "price_of_robustness": smart_round(price_of_robustness(valid_runs, fac)),
+            "optimality_gap": smart_round(optimality_gap(valid_runs, fac)),
+            "coefficient_of_variation": smart_round(coefficient_of_variation(valid_runs)),
         })
 
     fieldnames = [

@@ -53,10 +53,12 @@ def find_pareto_front(objectives: np.ndarray) -> np.ndarray:
                 is_dominated[i] = True
                 break
     pareto = np.where(~is_dominated)[0]
-    if len(pareto) < 2:
+    # Ensure we have enough points to show at least 2 blue points 
+    # after excluding knee and ideal points.
+    if len(pareto) < 4:
         sorted_by_huff = np.argsort(objectives[:, 0])[::-1]
-        pareto = sorted_by_huff[:2]
-    return pareto
+        pareto = np.unique(np.concatenate([pareto, sorted_by_huff[:4]]))
+    return np.sort(pareto)
 
 
 def find_knee_point(objectives: np.ndarray) -> int:
@@ -79,6 +81,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     knee_idx = find_knee_point(pareto_objectives)
     knee_global_idx = pareto_indices[knee_idx]
     knee_coords = normalized[knee_global_idx]
+    ideal_coords = np.array([1.0, 1.0])
 
     if len(dominated_indices) > 4:
         distances = [(idx, np.min(np.linalg.norm(pareto_objectives - normalized[idx], axis=1))) for idx in dominated_indices]
@@ -87,8 +90,8 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     else:
         selected_dominated = dominated_indices[:4]
 
-    other_mask = np.ones(len(pareto_indices), dtype=bool)
-    other_mask[knee_idx] = False
+    # Keep points that are NOT at the same location as the knee point AND NOT at the same location as the ideal point
+    other_mask = np.any(pareto_objectives != knee_coords, axis=1) & np.any(pareto_objectives != ideal_coords, axis=1)
     other_pareto_indices = np.where(other_mask)[0]
     if len(other_pareto_indices) > 4:
         other_pareto_indices = other_pareto_indices[::2]

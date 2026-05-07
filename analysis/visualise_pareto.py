@@ -211,7 +211,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     padding = (data_max - data_min) * 0.15
     min_coords, max_coords = data_min - padding, data_max + padding
     
-    ax.set_xlim(max_coords[0], min_coords[0])
+    ax.set_xlim(min_coords[0], max_coords[0])
     ax.set_ylim(min_coords[1], max_coords[1])
     ax.set_zlim(min_coords[2], max_coords[2])
     
@@ -315,12 +315,9 @@ def visualize(filepath: str, output_path: Optional[str] = None):
                       bbox_to_anchor=(0.0, 0.98), labelspacing=0.75, handletextpad=0.5, borderpad=0.75)
     legend.get_frame().set_linewidth(1.5)
     
-    extreme_locations = [solutions[pareto_indices[i]].locations for i in extreme_indices]
     knee_sol = solutions[knee_global_idx]
-    extreme_lines = '\n'.join([f'  {{{loc}}}' for loc in extreme_locations])
     info_text = (f'Knee point: {{{knee_sol.locations}}}\n'
-                f'Huff: {knee_sol.huff_model:.2f}%  |  P.Binary: {knee_sol.partially_binary:.2f}%  |  P.Huff: {knee_sol.pareto_huff:.2f}%\n'
-                f'Extreme solutions:\n{extreme_lines}')
+                 f'Huff: {knee_sol.huff_model:.2f}%  |  P.Binary: {knee_sol.partially_binary:.2f}%  |  P.Huff: {knee_sol.pareto_huff:.2f}%')
     
     ax.text2D(1.0, 0.98, info_text, transform=ax.transAxes, fontsize=10,
              verticalalignment='top', horizontalalignment='right',

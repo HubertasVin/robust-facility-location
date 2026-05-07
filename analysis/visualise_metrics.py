@@ -76,12 +76,11 @@ def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
             if val is not None:
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + 0.01 * ax.get_ylim()[1],
+                    bar.get_height() + 0.02 * (ax.get_ylim()[1] - ax.get_ylim()[0]),
                     f'{val:.3f}',
                     ha='center',
                     va='bottom',
                     fontsize=14,
-                    rotation=90,
                 )
 
     tick_fontsize = 14
@@ -93,7 +92,7 @@ def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
     ax.set_xticks(x)
     ax.set_xticklabels([str(fs) for fs in facility_sizes], fontsize=tick_fontsize)
     ax.tick_params(axis='y', labelsize=tick_fontsize)
-    ax.legend(title='Iterations', fontsize=13, title_fontsize=14)
+    ax.legend(title='Iterations', fontsize=13, title_fontsize=14, loc='upper left')
 
     ymin, ymax = ax.get_ylim()
     ax.set_ylim(ymin, ymax * 1.15)

@@ -17,11 +17,11 @@ type SolutionsTable struct {
 	mu           sync.Mutex
 	f            *os.File
 	w            *bufio.Writer
-	behaviorCols []string
+	behaviourCols []string
 	writes       int
 }
 
-func NewSolutionsTable(filename string, behaviorColumns []string) (*SolutionsTable, error) {
+func NewSolutionsTable(filename string, behaviourColumns []string) (*SolutionsTable, error) {
 	f, err := os.Create(filename)
 	if err != nil {
 		return nil, err
@@ -30,12 +30,12 @@ func NewSolutionsTable(filename string, behaviorColumns []string) (*SolutionsTab
 	t := &SolutionsTable{
 		f:            f,
 		w:            bufio.NewWriterSize(f, 256*1024),
-		behaviorCols: append([]string(nil), behaviorColumns...),
+		behaviourCols: append([]string(nil), behaviourColumns...),
 	}
 
 	// Header
 	cols := []string{"stage", "iter", "locations"}
-	cols = append(cols, t.behaviorCols...)
+	cols = append(cols, t.behaviourCols...)
 	cols = append(cols, "mean")
 	if _, err := t.w.WriteString(strings.Join(cols, "\t") + "\n"); err != nil {
 		_ = f.Close()
@@ -50,7 +50,7 @@ func NewSolutionsTable(filename string, behaviorColumns []string) (*SolutionsTab
 // - stage: e.g. "train:init", "train:iter", "robust:init", "robust:iter"
 // - iter: iteration index, or -1 for initialization
 // - locations: facility location IDs
-// - objectives: objective values aligned with behaviorColumns
+// - objectives: objective values aligned with behaviourColumns
 func (t *SolutionsTable) Record(stage string, iter int, locations []int, objectives []float64) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -82,7 +82,7 @@ func (t *SolutionsTable) Record(stage string, iter int, locations []int, objecti
 	}
 
 	// If objectives were shorter than declared columns, pad to keep TSV rectangular.
-	for i := len(objectives); i < len(t.behaviorCols); i++ {
+	for i := len(objectives); i < len(t.behaviourCols); i++ {
 		b.WriteByte('\t')
 	}
 

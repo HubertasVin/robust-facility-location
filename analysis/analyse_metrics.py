@@ -1,4 +1,4 @@
-"""Analyze raw_results.json and compute metrics for each configuration.
+"""Analyse raw_results.json and compute metrics for each configuration.
 
 Produces robustness_metrics.csv with columns:
 max_facilities, iterations, solution_stability, hypervolume, price_of_robustness,

@@ -1,18 +1,18 @@
 package problem
 
-// CustomerBehaviorModel computes utility (market share in %) of candidate
+// CustomerBehaviourModel computes utility (market share in %) of candidate
 // facilities X for one customer-choice rule.
 //
 // NOTE: X is expected to contain facility location IDs (elements of L), not
 // indices into L.
-type CustomerBehaviorModel interface {
+type CustomerBehaviourModel interface {
 	Utility(p *Problem, X []int) float64
 }
 
-// BinaryModel is the winner-takes-most customer behavior.
+// BinaryModel is the winner-takes-most customer behaviour.
 type BinaryModel struct{}
 
-// HuffModel is the proportional customer behavior model.
+// HuffModel is the proportional customer behaviour model.
 type HuffModel struct{}
 
 // PartiallyBinaryModel picks one best facility per firm, then splits demand

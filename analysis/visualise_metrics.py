@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Visualize robustness metrics as grouped bar charts."""
+"""Visualise robustness metrics as grouped bar charts."""
 
 import matplotlib
 matplotlib.use('Agg')

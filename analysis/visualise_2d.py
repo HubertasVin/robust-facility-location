@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Visualizer for 2D Pareto front (Huff and PartiallyBinary models)."""
 
 import sys
 import numpy as np
@@ -35,7 +34,7 @@ def load_solutions(filepath: str) -> List[Solution]:
     return solutions
 
 
-def normalize_objectives(solutions: List[Solution]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def normalise_objectives(solutions: List[Solution]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     objectives = np.array([s.objectives for s in solutions])
     mins = objectives.min(axis=0)
     maxs = objectives.max(axis=0)
@@ -66,25 +65,25 @@ def find_knee_point(objectives: np.ndarray) -> int:
     return np.argmin(np.linalg.norm(objectives - ideal, axis=1))
 
 
-def visualize(filepath: str, output_path: Optional[str] = None):
+def visualise(filepath: str, output_path: Optional[str] = None):
     solutions = load_solutions(filepath)
     if len(solutions) == 0:
         print("No solutions found.")
         return
 
-    normalized, _, _ = normalize_objectives(solutions)
+    normalised, _, _ = normalise_objectives(solutions)
 
-    pareto_indices = find_pareto_front(normalized)
-    pareto_objectives = normalized[pareto_indices]
-    dominated_indices = list(set(range(len(normalized))) - set(pareto_indices))
+    pareto_indices = find_pareto_front(normalised)
+    pareto_objectives = normalised[pareto_indices]
+    dominated_indices = list(set(range(len(normalised))) - set(pareto_indices))
 
     knee_idx = find_knee_point(pareto_objectives)
     knee_global_idx = pareto_indices[knee_idx]
-    knee_coords = normalized[knee_global_idx]
+    knee_coords = normalised[knee_global_idx]
     ideal_coords = np.array([1.0, 1.0])
 
     if len(dominated_indices) > 4:
-        distances = [(idx, np.min(np.linalg.norm(pareto_objectives - normalized[idx], axis=1))) for idx in dominated_indices]
+        distances = [(idx, np.min(np.linalg.norm(pareto_objectives - normalised[idx], axis=1))) for idx in dominated_indices]
         distances.sort(key=lambda x: x[1])
         selected_dominated = [idx for idx, _ in distances[:4]]
     else:
@@ -99,7 +98,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     fig, ax = plt.subplots(figsize=(12, 10))
     plt.subplots_adjust(top=0.92, bottom=0.08, left=0.08, right=0.98)
 
-    all_points = np.array(list(pareto_objectives) + [normalized[idx] for idx in selected_dominated] + [np.array([1.0, 1.0])])
+    all_points = np.array(list(pareto_objectives) + [normalised[idx] for idx in selected_dominated] + [np.array([1.0, 1.0])])
     data_min, data_max = all_points.min(axis=0), all_points.max(axis=0)
 
     ax.set_xlim(data_min[0] - 0.01, data_max[0] + 0.01)
@@ -107,7 +106,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
 
     if selected_dominated:
         for idx in selected_dominated:
-            coord = normalized[idx]
+            coord = normalised[idx]
             ax.scatter(coord[0], coord[1], c='lightgray', s=225,
                        alpha=0.9, edgecolors='black', linewidth=1.5)
         ax.scatter([], [], c='lightgray', s=225, edgecolors='black',
@@ -168,4 +167,4 @@ if __name__ == '__main__':
     filepath = sys.argv[1] if len(sys.argv) > 1 else '../checked_solutions.tsv'
     output_path = sys.argv[2] if len(sys.argv) > 2 else 'analysis/pareto_2d.png'
     print(f"Loading solutions from {filepath}...")
-    visualize(filepath, output_path)
+    visualise(filepath, output_path)

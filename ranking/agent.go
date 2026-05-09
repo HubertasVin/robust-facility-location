@@ -1,6 +1,7 @@
 package ranking
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand/v2"
@@ -19,20 +20,20 @@ type Agent struct {
 	Cfg       *config.Config
 	Prob      *problem.Problem
 	RankTable *RankTable
-	Behavior  problem.CustomerBehaviorModel
+	Behaviour  problem.CustomerBehaviourModel
 	Logger    EvaluationLogger
-	// LogBehaviors, when set, controls which objectives are logged for each evaluated solution.
-	// If nil/empty, logging (if enabled) falls back to only the active Behavior.
-	LogBehaviors []problem.CustomerBehaviorModel
+	// LogBehaviours, when set, controls which objectives are logged for each evaluated solution.
+	// If nil/empty, logging (if enabled) falls back to only the active Behaviour.
+	LogBehaviours []problem.CustomerBehaviourModel
 	// ParetoFront is populated after FindRobustSolution is called
 	ParetoFront *solution.ParetoFront
 	baseline    float64
 }
 
 // NewAgent creates a new Agent.
-func NewAgent(cfg *config.Config, prob *problem.Problem, behavior problem.CustomerBehaviorModel) *Agent {
-	if behavior == nil {
-		behavior = problem.BinaryModel{}
+func NewAgent(cfg *config.Config, prob *problem.Problem, behaviour problem.CustomerBehaviourModel) *Agent {
+	if behaviour == nil {
+		behaviour = problem.BinaryModel{}
 	}
 	rt := NewRankTable()
 	rt.Initialize(prob.L)
@@ -40,23 +41,23 @@ func NewAgent(cfg *config.Config, prob *problem.Problem, behavior problem.Custom
 		Cfg:          cfg,
 		Prob:         prob,
 		RankTable:    rt,
-		Behavior:     behavior,
+		Behaviour:     behaviour,
 		Logger:       nil,
-		LogBehaviors: nil,
+		LogBehaviours: nil,
 		baseline:     0.0,
 	}
 }
 
-func (a *Agent) log(stage string, iter int, locations []int, behaviors []problem.CustomerBehaviorModel, objectives []float64) {
+func (a *Agent) log(stage string, iter int, locations []int, behaviours []problem.CustomerBehaviourModel, objectives []float64) {
 	if a.Logger == nil {
 		return
 	}
-	_ = a.Logger.Record(stage, iter, locations, behaviors, objectives)
+	_ = a.Logger.Record(stage, iter, locations, behaviours, objectives)
 }
 
 // Utility evaluates a solution's utility.
 func (a *Agent) Utility(locations []int) float64 {
-	return a.Behavior.Utility(a.Prob, locations)
+	return a.Behaviour.Utility(a.Prob, locations)
 }
 
 // generateInitialSolution creates a random initial solution.
@@ -234,9 +235,9 @@ func (a *Agent) updateBaseline(utility float64) {
 // Run executes the FLARC/PL algorithm.
 func (a *Agent) Run() *Individual {
 	pop := NewPopulation(a.Cfg.PopulationSize)
-	behaviors := a.LogBehaviors
-	if len(behaviors) == 0 {
-		behaviors = []problem.CustomerBehaviorModel{a.Behavior}
+	behaviours := a.LogBehaviours
+	if len(behaviours) == 0 {
+		behaviours = []problem.CustomerBehaviourModel{a.Behaviour}
 	}
 
 	// Initialize population with random solutions
@@ -250,9 +251,9 @@ func (a *Agent) Run() *Individual {
 			ind = a.generateInitialSolution()
 		}
 
-		// Log objectives for the agent's behavior (or more, if the caller supplies more in robust mode).
-		objectives := a.evaluateMultiObjective(ind.Locations, behaviors)
-		a.log("train:init", -1, ind.Locations, behaviors, objectives)
+		// Log objectives for the agent's behaviour (or more, if the caller supplies more in robust mode).
+		objectives := a.evaluateMultiObjective(ind.Locations, behaviours)
+		a.log("train:init", -1, ind.Locations, behaviours, objectives)
 
 		pop.Add(ind)
 	}
@@ -274,8 +275,8 @@ func (a *Agent) Run() *Individual {
 		// Create offspring through mutation
 		child := a.mutate(parent)
 		child.Utility = a.Utility(child.Locations)
-		objectives := a.evaluateMultiObjective(child.Locations, behaviors)
-		a.log("train:iter", iter, child.Locations, behaviors, objectives)
+		objectives := a.evaluateMultiObjective(child.Locations, behaviours)
+		a.log("train:iter", iter, child.Locations, behaviours, objectives)
 
 		// Update ranks based on child performance
 		a.updateRanks(child)
@@ -301,11 +302,11 @@ func (a *Agent) Run() *Individual {
 	return bestEver
 }
 
-// evaluateMultiObjective evaluates a solution against multiple customer behavior models
-func (a *Agent) evaluateMultiObjective(locations []int, behaviors []problem.CustomerBehaviorModel) []float64 {
-	objectives := make([]float64, len(behaviors))
-	for i, behavior := range behaviors {
-		objectives[i] = behavior.Utility(a.Prob, locations)
+// evaluateMultiObjective evaluates a solution against multiple customer behaviour models
+func (a *Agent) evaluateMultiObjective(locations []int, behaviours []problem.CustomerBehaviourModel) []float64 {
+	objectives := make([]float64, len(behaviours))
+	for i, behaviour := range behaviours {
+		objectives[i] = behaviour.Utility(a.Prob, locations)
 	}
 	return objectives
 }
@@ -322,8 +323,8 @@ func (a *Agent) createMultiObjectiveSolutionWithObjectives(locations []int, obje
 }
 
 // FindRobustSolution finds a robust solution using knee point identification
-func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *solution.Solution {
-	if len(behaviors) == 0 {
+func (a *Agent) FindRobustSolution(behaviours []problem.CustomerBehaviourModel) *solution.Solution {
+	if len(behaviours) == 0 {
 		return nil
 	}
 
@@ -339,9 +340,9 @@ func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *s
 			ind = a.generateInitialSolution()
 		}
 
-		objectives := a.evaluateMultiObjective(ind.Locations, behaviors)
+		objectives := a.evaluateMultiObjective(ind.Locations, behaviours)
 		ind.Utility = stat.Mean(objectives, nil)
-		a.log("robust:init", -1, ind.Locations, behaviors, objectives)
+		a.log("robust:init", -1, ind.Locations, behaviours, objectives)
 		pop.Add(ind)
 		paretoFront.AddSolution(a.createMultiObjectiveSolutionWithObjectives(ind.Locations, objectives))
 	}
@@ -355,14 +356,16 @@ func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *s
 		reportEvery = 1
 	}
 
+	snapEvery := a.Cfg.LogPeriod
+
 	// Main loop: mutate, re-rank, and accumulate non-dominated solutions.
 	for iter := 0; iter < a.Cfg.Iterations; iter++ {
 		parent := pop.RandomSelect()
 		child := a.mutate(parent)
 
-		objectives := a.evaluateMultiObjective(child.Locations, behaviors)
+		objectives := a.evaluateMultiObjective(child.Locations, behaviours)
 		child.Utility = stat.Mean(objectives, nil)
-		a.log("robust:iter", iter, child.Locations, behaviors, objectives)
+		a.log("robust:iter", iter, child.Locations, behaviours, objectives)
 
 		a.updateRanks(child)
 		a.updateBaseline(child.Utility)
@@ -373,7 +376,24 @@ func (a *Agent) FindRobustSolution(behaviors []problem.CustomerBehaviorModel) *s
 			bestMean = child.Copy()
 		}
 
-		if (iter+1)%reportEvery == 0 {
+		if snapEvery > 0 && (iter+1)%snapEvery == 0 {
+			snapKP := paretoFront.FindKneePoint()
+			if snapKP != nil {
+				snap := struct {
+					Iteration  int       `json:"iteration"`
+					ParetoSize int       `json:"pareto_size"`
+					KneePoint  []float64 `json:"knee_point"`
+				}{
+					Iteration:  iter + 1,
+					ParetoSize: paretoFront.Len(),
+					KneePoint:  snapKP.Objectives,
+				}
+				enc := json.NewEncoder(os.Stderr)
+				_ = enc.Encode(snap)
+			}
+		}
+
+		if snapEvery <= 0 && (iter+1)%reportEvery == 0 {
 			fmt.Fprintf(os.Stderr, "Iteration %d: Pareto=%d, BestMean=%.6f%%, Baseline=%.6f%%\n",
 				iter+1, paretoFront.Len(), bestMean.Utility, a.baseline)
 		}

@@ -20,14 +20,14 @@ type JSONResult struct {
 	ParetoFront   []*solution.Solution `json:"pareto_front"`
 }
 
-func AllBehaviorModels(twoDMode bool) []problem.CustomerBehaviorModel {
+func AllBehaviourModels(twoDMode bool) []problem.CustomerBehaviourModel {
 	if twoDMode {
-		return []problem.CustomerBehaviorModel{
+		return []problem.CustomerBehaviourModel{
 			problem.HuffModel{},
 			problem.PartiallyBinaryModel{},
 		}
 	}
-	return []problem.CustomerBehaviorModel{
+	return []problem.CustomerBehaviourModel{
 		problem.HuffModel{},
 		problem.PartiallyBinaryModel{},
 		problem.ParetoHuffModel{},
@@ -42,12 +42,12 @@ func main() {
 		log.Fatalf("Failed to load problem data: %v", err)
 	}
 
-	behaviorModel := problem.HuffModel{}
+	behaviourModel := problem.HuffModel{}
 
-	agent := ranking.NewAgent(cfg, prob, behaviorModel)
+	agent := ranking.NewAgent(cfg, prob, behaviourModel)
 
-	behaviors := AllBehaviorModels(cfg.TwoDMode)
-	tableLogger, err := report.NewSolutionsTableLogger(cfg.CheckedSolutionsFile, behaviors)
+	behaviours := AllBehaviourModels(cfg.TwoDMode)
+	tableLogger, err := report.NewSolutionsTableLogger(cfg.CheckedSolutionsFile, behaviours)
 	if err != nil {
 		log.Fatalf("Failed to create checked-solutions table file: %v", err)
 	}
@@ -57,7 +57,7 @@ func main() {
 		}
 	}()
 	agent.Logger = tableLogger
-	agent.LogBehaviors = behaviors
+	agent.LogBehaviours = behaviours
 
 	_ = agent.RankTable.Load(cfg.RankFile)
 
@@ -76,7 +76,7 @@ func main() {
 		fmt.Printf("(%.6f%%)\n", best.Utility)
 	} else {
 		fmt.Fprintln(os.Stderr, "=== Finding Robust Solution (Knee Point) ===")
-		robustSolution := agent.FindRobustSolution(behaviors)
+		robustSolution := agent.FindRobustSolution(behaviours)
 		if robustSolution == nil {
 			log.Fatalf("Failed to find robust solution")
 		}

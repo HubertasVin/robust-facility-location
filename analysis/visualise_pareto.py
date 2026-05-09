@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Visualizer for Pareto front and knee point identification."""
 
 import sys
 import numpy as np
@@ -64,7 +63,7 @@ def load_solutions(filepath: str) -> List[Solution]:
     return solutions
 
 
-def normalize_objectives(solutions: List[Solution]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def normalise_objectives(solutions: List[Solution]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     objectives = np.array([s.objectives for s in solutions])
     mins = objectives.min(axis=0)
     maxs = objectives.max(axis=0)
@@ -157,31 +156,31 @@ def order_vertices_ccw(vertices: List[np.ndarray], normal: np.ndarray) -> List[n
     return [vertices[i] for i in np.argsort(angles)]
 
 
-def blend_with_gray(hex_color: str, blend_factor: float = 0.5) -> str:
-    hex_color = hex_color.lstrip('#')
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-    gray = 128
-    return f'#{int(r * (1 - blend_factor) + gray * blend_factor):02x}{int(g * (1 - blend_factor) + gray * blend_factor):02x}{int(b * (1 - blend_factor) + gray * blend_factor):02x}'
+def blend_with_grey(hex_colour: str, blend_factor: float = 0.5) -> str:
+    hex_colour = hex_colour.lstrip('#')
+    r, g, b = int(hex_colour[0:2], 16), int(hex_colour[2:4], 16), int(hex_colour[4:6], 16)
+    grey = 128
+    return f'#{int(r * (1 - blend_factor) + grey * blend_factor):02x}{int(g * (1 - blend_factor) + grey * blend_factor):02x}{int(b * (1 - blend_factor) + grey * blend_factor):02x}'
 
 
-def visualize(filepath: str, output_path: Optional[str] = None):
+def visualise(filepath: str, output_path: Optional[str] = None):
     solutions = load_solutions(filepath)
-    normalized, _, _ = normalize_objectives(solutions)
+    normalised, _, _ = normalise_objectives(solutions)
     
-    pareto_indices = find_pareto_front(normalized)
-    pareto_objectives = normalized[pareto_indices]
-    dominated_indices = list(set(range(len(normalized))) - set(pareto_indices))
+    pareto_indices = find_pareto_front(normalised)
+    pareto_objectives = normalised[pareto_indices]
+    dominated_indices = list(set(range(len(normalised))) - set(pareto_indices))
     
     extreme_indices = find_extreme_solutions(pareto_objectives)
     extreme_global_indices = pareto_indices[extreme_indices]
-    extreme_coords = normalized[extreme_global_indices]
+    extreme_coords = normalised[extreme_global_indices]
     
     knee_idx = find_knee_point(pareto_objectives, extreme_indices)
     knee_global_idx = pareto_indices[knee_idx]
-    knee_coords = normalized[knee_global_idx]
+    knee_coords = normalised[knee_global_idx]
     
     if len(dominated_indices) > 4:
-        distances = [(idx, np.min(np.linalg.norm(pareto_objectives - normalized[idx], axis=1))) for idx in dominated_indices]
+        distances = [(idx, np.min(np.linalg.norm(pareto_objectives - normalised[idx], axis=1))) for idx in dominated_indices]
         distances.sort(key=lambda x: x[1])
         selected_dominated = [idx for idx, _ in distances[:4]]
     else:
@@ -206,7 +205,7 @@ def visualize(filepath: str, output_path: Optional[str] = None):
     else:
         normal_unit = normal / normal_norm
     
-    relevant_coords = np.array(list(pareto_objectives) + [normalized[idx] for idx in selected_dominated] + [np.array([1.0, 1.0, 1.0])])
+    relevant_coords = np.array(list(pareto_objectives) + [normalised[idx] for idx in selected_dominated] + [np.array([1.0, 1.0, 1.0])])
     data_min, data_max = relevant_coords.min(axis=0), relevant_coords.max(axis=0)
     padding = (data_max - data_min) * 0.15
     min_coords, max_coords = data_min - padding, data_max + padding
@@ -256,29 +255,29 @@ def visualize(filepath: str, output_path: Optional[str] = None):
                     p1, p2 = stripe_points[0][1], stripe_points[-1][1]
                     ax.plot([p1[0], p2[0]], [p1[1], p2[1]], [p1[2], p2[2]], 'darkblue', linewidth=2, alpha=0.6)
     
-    behind_dominated = [np.dot(normal, normalized[idx]) < d for idx in selected_dominated]
+    behind_dominated = [np.dot(normal, normalised[idx]) < d for idx in selected_dominated]
     behind_pareto = [np.dot(normal, pareto_objectives[idx]) < d for idx in other_pareto_indices]
-    border_behind = 'dimgray'
+    border_behind = 'dimgrey'
     
     sizes = {'dominated': 225, 'pareto': 225, 'extreme': 300, 'knee': 600, 'ideal': 375}
     legend_sizes = {'extreme': 150, 'knee': 200, 'ideal': 150}
     
     if selected_dominated:
         for i, idx in enumerate(selected_dominated):
-            coord = normalized[idx]
-            color = blend_with_gray('#D3D3D3', 0.5) if behind_dominated[i] else 'lightgray'
+            coord = normalised[idx]
+            colour = blend_with_grey('#D3D3D3', 0.5) if behind_dominated[i] else 'lightgrey'
             edge = border_behind if behind_dominated[i] else 'black'
-            ax.scatter([coord[0]], [coord[1]], [coord[2]], c=color, s=sizes['dominated'], 
+            ax.scatter([coord[0]], [coord[1]], [coord[2]], c=colour, s=sizes['dominated'], 
                       alpha=0.9, edgecolors=edge, linewidth=1.5, depthshade=False)
-        ax.scatter([], [], [], c='lightgray', s=sizes['dominated'], edgecolors='black', 
+        ax.scatter([], [], [], c='lightgrey', s=sizes['dominated'], edgecolors='black',
                   linewidth=1.5, label='Dominated solutions', depthshade=False)
     
     if len(other_pareto_indices) > 0:
         for i, idx in enumerate(other_pareto_indices):
             coord = pareto_objectives[idx]
-            color = blend_with_gray('#4169E1', 0.5) if behind_pareto[i] else 'royalblue'
+            colour = blend_with_grey('#4169E1', 0.5) if behind_pareto[i] else 'royalblue'
             edge = border_behind if behind_pareto[i] else 'black'
-            ax.scatter([coord[0]], [coord[1]], [coord[2]], c=color, s=sizes['pareto'],
+            ax.scatter([coord[0]], [coord[1]], [coord[2]], c=colour, s=sizes['pareto'],
                       alpha=0.9, edgecolors=edge, linewidth=1.5, depthshade=False)
         ax.scatter([], [], [], c='royalblue', s=sizes['pareto'], edgecolors='black',
                   linewidth=1.5, label='Pareto front', depthshade=False)
@@ -341,4 +340,4 @@ if __name__ == '__main__':
     filepath = sys.argv[1] if len(sys.argv) > 1 else '../checked_solutions.tsv'
     output_path = sys.argv[2] if len(sys.argv) > 2 else None
     print(f"Loading solutions from {filepath}...")
-    visualize(filepath, output_path)
+    visualise(filepath, output_path)

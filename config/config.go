@@ -31,6 +31,7 @@ type Config struct {
 	CheckedSolutionsFile string // TSV file with all evaluated solutions and objectives
 	JSONMode             bool   // If true, output results as JSON to stdout
 	TwoDMode             bool   // If true, use only Huff and PartiallyBinary models (2D)
+	LogPeriod int // If >0, emit intermediate knee-point JSON to stderr every LogPeriod iterations
 }
 
 // Load reads configuration from environment variables, falling back to defaults.
@@ -48,6 +49,7 @@ func Load() *Config {
 		CheckedSolutionsFile: envString("CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
 		JSONMode:             envBool("JSON_MODE", false),
 		TwoDMode:             envBool("TWO_D_MODE", false),
+		LogPeriod:            envInt("LOG_PERIOD", 0),
 	}
 }
 

@@ -13,14 +13,14 @@ import (
 
 type SolutionsTableLogger struct {
 	table          *SolutionsTable
-	behaviorCols   []string
-	behaviorColSet map[string]struct{}
+	behaviourCols   []string
+	behaviourColSet map[string]struct{}
 
 	mu   sync.Mutex
 	seen map[string]struct{}
 }
 
-func behaviorName(b problem.CustomerBehaviorModel) string {
+func behaviourName(b problem.CustomerBehaviourModel) string {
 	if b == nil {
 		return "<nil>"
 	}
@@ -34,11 +34,11 @@ func behaviorName(b problem.CustomerBehaviorModel) string {
 	return fmt.Sprintf("%T", b)
 }
 
-func NewSolutionsTableLogger(filename string, behaviors []problem.CustomerBehaviorModel) (*SolutionsTableLogger, error) {
-	cols := make([]string, 0, len(behaviors))
-	colSet := make(map[string]struct{}, len(behaviors))
-	for _, b := range behaviors {
-		name := behaviorName(b)
+func NewSolutionsTableLogger(filename string, behaviours []problem.CustomerBehaviourModel) (*SolutionsTableLogger, error) {
+	cols := make([]string, 0, len(behaviours))
+	colSet := make(map[string]struct{}, len(behaviours))
+	for _, b := range behaviours {
+		name := behaviourName(b)
 		cols = append(cols, name)
 		colSet[name] = struct{}{}
 	}
@@ -50,8 +50,8 @@ func NewSolutionsTableLogger(filename string, behaviors []problem.CustomerBehavi
 
 	return &SolutionsTableLogger{
 		table:          t,
-		behaviorCols:   cols,
-		behaviorColSet: colSet,
+		behaviourCols:   cols,
+		behaviourColSet: colSet,
 		seen:           make(map[string]struct{}, 1024),
 	}, nil
 }
@@ -89,12 +89,12 @@ func (l *SolutionsTableLogger) recordIfNew(stage string, iter int, locations []i
 }
 
 // Record implements ranking.EvaluationLogger.
-func (l *SolutionsTableLogger) Record(stage string, iter int, locations []int, behaviors []problem.CustomerBehaviorModel, objectives []float64) error {
+func (l *SolutionsTableLogger) Record(stage string, iter int, locations []int, behaviours []problem.CustomerBehaviourModel, objectives []float64) error {
 	// Fast path: objectives already aligned to our columns.
-	if len(behaviors) == len(l.behaviorCols) && len(objectives) == len(l.behaviorCols) {
+	if len(behaviours) == len(l.behaviourCols) && len(objectives) == len(l.behaviourCols) {
 		aligned := true
-		for i := range behaviors {
-			if behaviorName(behaviors[i]) != l.behaviorCols[i] {
+		for i := range behaviours {
+			if behaviourName(behaviours[i]) != l.behaviourCols[i] {
 				aligned = false
 				break
 			}
@@ -104,17 +104,17 @@ func (l *SolutionsTableLogger) Record(stage string, iter int, locations []int, b
 		}
 	}
 
-	// Map by behavior name, then re-align into our fixed columns.
+	// Map by behaviour name, then re-align into our fixed columns.
 	byName := make(map[string]float64, len(objectives))
-	for i, b := range behaviors {
+	for i, b := range behaviours {
 		if i >= len(objectives) {
 			break
 		}
-		byName[behaviorName(b)] = objectives[i]
+		byName[behaviourName(b)] = objectives[i]
 	}
 
-	alignedObjectives := make([]float64, len(l.behaviorCols))
-	for i, col := range l.behaviorCols {
+	alignedObjectives := make([]float64, len(l.behaviourCols))
+	for i, col := range l.behaviourCols {
 		if v, ok := byName[col]; ok {
 			alignedObjectives[i] = v
 			continue

@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import csv
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
+from pathlib import Path
 
 
 @dataclass
@@ -52,8 +53,6 @@ def find_pareto_front(objectives: np.ndarray) -> np.ndarray:
                 is_dominated[i] = True
                 break
     pareto = np.where(~is_dominated)[0]
-    # Ensure we have enough points to show at least 2 blue points 
-    # after excluding knee and ideal points.
     if len(pareto) < 4:
         sorted_by_huff = np.argsort(objectives[:, 0])[::-1]
         pareto = np.unique(np.concatenate([pareto, sorted_by_huff[:4]]))
@@ -89,7 +88,6 @@ def visualise(filepath: str, output_path: Optional[str] = None):
     else:
         selected_dominated = dominated_indices[:4]
 
-    # Keep points that are NOT at the same location as the knee point AND NOT at the same location as the ideal point
     other_mask = np.any(pareto_objectives != knee_coords, axis=1) & np.any(pareto_objectives != ideal_coords, axis=1)
     other_pareto_indices = np.where(other_mask)[0]
     if len(other_pareto_indices) > 4:
@@ -164,7 +162,10 @@ def visualise(filepath: str, output_path: Optional[str] = None):
 
 
 if __name__ == '__main__':
-    filepath = sys.argv[1] if len(sys.argv) > 1 else '../checked_solutions.tsv'
-    output_path = sys.argv[2] if len(sys.argv) > 2 else 'analysis/pareto_2d.png'
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+
+    filepath = sys.argv[1] if len(sys.argv) > 1 else str(project_root / 'checked_solutions.tsv')
+    output_path = sys.argv[2] if len(sys.argv) > 2 else str(script_dir.parent / 'pareto_2d.png')
     print(f"Loading solutions from {filepath}...")
     visualise(filepath, output_path)

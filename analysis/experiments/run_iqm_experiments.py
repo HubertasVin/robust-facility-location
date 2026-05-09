@@ -9,31 +9,15 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 RUNS = 100
 MAX_FACILITIES = 10
-ITERATIONS = 32000
+ITERATIONS = 32000 
 LOG_PERIOD = 800
 MODEL_NAMES = ['Huff', 'PartiallyBinary', 'ParetoHuff']
 
 
-def interquartile_mean(values):
-    a = np.sort(np.array(values, dtype=float))
-    n = len(a)
-    if n < 4:
-        return np.mean(a)
-    q1 = int(np.floor(0.25 * n))
-    q3 = int(np.ceil(0.75 * n))
-    return np.mean(a[q1:q3])
-
-
-def general_mean(values):
-    return float(np.mean(np.array(values, dtype=float)))
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 
 def run_one(run_index):
@@ -50,6 +34,7 @@ def run_one(run_index):
             ['go', 'run', '.'],
             capture_output=True, text=True, timeout=1800,
             env=env,
+            cwd=str(PROJECT_ROOT),
         )
         snapshots = []
         for line in proc.stderr.split('\n'):
@@ -100,76 +85,8 @@ def collect_checkpoints(all_results):
     return iteration_to_objectives
 
 
-def create_line_chart(iteration_to_objectives, output_dir):
-    iterations = sorted(iteration_to_objectives.keys())
-    if not iterations:
-        print('No checkpoint data to plot', file=sys.stderr)
-        return
-
-    fig, ax = plt.subplots(figsize=(14, 8))
-    fig.suptitle(
-        'Interquartile Mean of Knee-Point Objectives over Iterations\n'
-        f'({MAX_FACILITIES}-Facility Sets, {RUNS} Runs, Dashed = Overall Mean)',
-        fontsize=15, y=1.02,
-    )
-
-    colours = ['#2166AC', '#B2182B', '#4DAF4A']
-
-    overall_iqm_per_iter = []
-    for it in iterations:
-        all_objectives_at_iter = []
-        for dim in range(3):
-            vals = iteration_to_objectives[it][dim]
-            all_objectives_at_iter.extend(vals)
-        overall_iqm_per_iter.append(interquartile_mean(all_objectives_at_iter))
-
-    for dim in range(3):
-        iqm_vals = []
-        for it in iterations:
-            vals = iteration_to_objectives[it][dim]
-            iqm_vals.append(interquartile_mean(vals))
-
-        ax.plot(iterations, iqm_vals, color=colours[dim], linewidth=2.5,
-                marker='o', markersize=5, markerfacecolor='white',
-                markeredgewidth=1.5, markeredgecolor=colours[dim],
-                label=MODEL_NAMES[dim], zorder=4)
-
-    ax.plot(iterations, overall_iqm_per_iter, color='grey', linewidth=2,
-            linestyle=(0, (8, 4)), zorder=5,
-            label=f'Overall IQM')
-
-    ax.set_xlabel('Iterations', fontsize=13)
-    ax.set_ylabel('Market Share (%)', fontsize=13)
-    ax.legend(fontsize=11, loc='lower right')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.grid(axis='y', alpha=0.3)
-    ax.set_xlim(0, ITERATIONS * 1.02)
-
-    plt.tight_layout()
-    outpath = Path(output_dir) / 'iqm_history_chart.png'
-    plt.savefig(outpath, dpi=150, facecolor='white', bbox_inches='tight')
-    plt.close()
-    print(f'Saved {outpath}')
-
-    print(f'\nIQM by iteration checkpoint ({RUNS} runs):')
-    header = f"{'Iter':>8}"
-    for name in MODEL_NAMES:
-        header += f' {name:>12}'
-    print(header)
-    print('-' * 48)
-    for it in iterations:
-        row = f'{it:>8}'
-        for dim in range(3):
-            vals = iteration_to_objectives[it][dim]
-            iqm = interquartile_mean(vals)
-            row += f' {iqm:>12.4f}'
-        print(row)
-
-
 def main():
-    script_dir = Path(__file__).parent
-    output_dir = script_dir
+    output_dir = Path(__file__).parent.parent
 
     print(f'Running {RUNS} trials...')
     print(f'  Facilities: {MAX_FACILITIES}')
@@ -217,9 +134,21 @@ def main():
 
     iteration_to_objectives = collect_checkpoints(results)
     print(f'Checkpoints with data: {len(iteration_to_objectives)}')
-    create_line_chart(iteration_to_objectives, output_dir)
 
-    print('Intermediate IQM chart generated.')
+    checkpoint_data = {
+        'meta': {
+            'max_facilities': MAX_FACILITIES,
+            'runs': RUNS,
+            'iterations': ITERATIONS,
+            'log_period': LOG_PERIOD,
+        },
+        'iteration_to_objectives': {str(k): dict(v) for k, v in iteration_to_objectives.items()},
+    }
+
+    outpath = output_dir / 'iqm_checkpoints.json'
+    with open(outpath, 'w') as f:
+        json.dump(checkpoint_data, f, indent=2)
+    print(f'Saved checkpoints to {outpath}')
 
 
 if __name__ == '__main__':

@@ -11,11 +11,16 @@ import subprocess
 import sys
 import time
 from itertools import product
+from pathlib import Path
 
 ITERATIONS_LIST = [8000, 16000, 32000, 64000]
 FACILITIES_LIST = [3, 5, 10]
 SAMPLES = 100
 MAX_WORKERS = max(os.cpu_count() or 4, 6)
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+OUTPUT_DIR = Path(__file__).parent.parent
+
 
 def run_one(iterations, facilities, run_index):
     env = os.environ.copy()
@@ -32,6 +37,7 @@ def run_one(iterations, facilities, run_index):
             text=True,
             env=env,
             timeout=1800,
+            cwd=str(PROJECT_ROOT),
         )
         if proc.returncode != 0:
             return {
@@ -103,7 +109,7 @@ def main():
                 })
                 completed += 1
 
-    output_file = "analysis/raw_results.json"
+    output_file = OUTPUT_DIR / "raw_results.json"
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
 

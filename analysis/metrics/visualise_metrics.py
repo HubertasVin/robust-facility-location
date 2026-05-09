@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Visualise robustness metrics as grouped bar charts."""
 
 import matplotlib
 matplotlib.use('Agg')
@@ -101,7 +100,7 @@ def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
     ax.spines['right'].set_visible(False)
 
     plt.tight_layout()
-    outpath = Path(output_dir) / filename
+    outpath = output_dir / filename
     plt.savefig(outpath, dpi=150, facecolor='white')
     plt.close()
     print(f'Saved {outpath}')
@@ -109,8 +108,8 @@ def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
 
 def main():
     script_dir = Path(__file__).parent
-    csv_path = script_dir / 'robustness_metrics.csv'
-    output_dir = script_dir
+    parent_dir = script_dir.parent
+    csv_path = parent_dir / 'robustness_metrics.csv'
 
     rows = load_metrics(csv_path)
     facility_sizes, iteration_counts = extract_groups(rows)
@@ -123,7 +122,7 @@ def main():
 
     for metric in metrics:
         data = build_data(rows, facility_sizes, iteration_counts, metric)
-        create_chart(data, facility_sizes, iteration_counts, metric, output_dir)
+        create_chart(data, facility_sizes, iteration_counts, metric, parent_dir)
 
     print('All charts generated.')
 

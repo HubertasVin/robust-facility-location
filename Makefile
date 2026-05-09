@@ -6,21 +6,25 @@ build_run:
 	go run .
 
 run_experiment:
-	./venv/bin/python analysis/run_experiments.py
-	./venv/bin/python analysis/analyse_metrics.py
+	./venv/bin/python analysis/experiments/run_experiments.py
+	./venv/bin/python analysis/metrics/analyse_metrics.py
 	$(MAKE) visualise_metrics
 
+run_iqm_experiment:
+	./venv/bin/python analysis/experiments/run_iqm_experiments.py
+	$(MAKE) visualise_iqm_history
+
 visualise_metrics: setup_venv
-	./venv/bin/python analysis/visualise_metrics.py
+	./venv/bin/python analysis/metrics/visualise_metrics.py
 
 visualise_pareto: setup_venv
-	./venv/bin/python analysis/visualise_pareto.py checked_solutions.tsv analysis/pareto_visualisation.png
+	./venv/bin/python analysis/pareto/visualise_pareto.py checked_solutions.tsv analysis/pareto_visualisation.png
 
-visualise_pareto_2d: setup_venv
-	./venv/bin/python analysis/visualise_2d.py checked_solutions.tsv analysis/pareto_2d.png
+visualise_pareto_2d: 
+	./venv/bin/python analysis/pareto/visualise_2d.py checked_solutions.tsv analysis/pareto_2d.png
 
 visualise_iqm_history: setup_venv
-	./venv/bin/python analysis/visualise_iqm_history.py
+	./venv/bin/python analysis/iqm/visualise_iqm_history.py
 
 setup_venv: requirements.txt
 	python3 -m venv venv

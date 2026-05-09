@@ -15,6 +15,7 @@ robust-flp
 checked_solutions.tsv
 ranks.dat
 raw_results.json
+iqm_checkpoints.json
 
 # Test binary, built with `go test -c`
 *.test

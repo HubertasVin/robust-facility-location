@@ -10,21 +10,13 @@ import json
 import math
 import sys
 from collections import defaultdict
-from itertools import combinations
+from pathlib import Path
 
-# With randomised quality values
 BEST_KNOWN = {
-    3: [23.422252, 31.715301, 33.605939], # 0 2 4
-    5: [29.714386, 38.163530, 42.447363], # 0 2 3 4 36
-    10: [40.585970, 46.079790, 56.232962,], # 0 1 2 3 4 6 36 83 195 364
+    3: [23.422252, 31.715301, 33.605939],
+    5: [29.714386, 38.163530, 42.447363],
+    10: [40.585970, 46.079790, 56.232962],
 }
-
-# Mono
-# BEST_KNOWN = {
-#     3: [21.800306, 29.292358, 23.080654],
-#     5: [27.748007, 35.009718, 29.088894],
-#     10: [35.011573, 40.522524, 36.247860],
-# }
 
 
 def jaccard_similarity(set_a, set_b):
@@ -210,15 +202,18 @@ def ideal_point_from_runs(runs):
 
 
 def main():
+    script_dir = Path(__file__).parent
+    parent_dir = script_dir.parent
+
     if len(sys.argv) < 2:
-        input_file = "analysis/raw_results.json"
+        input_file = parent_dir / "raw_results.json"
     else:
-        input_file = sys.argv[1]
+        input_file = Path(sys.argv[1])
 
     if len(sys.argv) >= 3:
-        output_file = sys.argv[2]
+        output_file = Path(sys.argv[2])
     else:
-        output_file = "analysis/robustness_metrics.csv"
+        output_file = parent_dir / "robustness_metrics.csv"
 
     with open(input_file, "r") as f:
         all_results = json.load(f)

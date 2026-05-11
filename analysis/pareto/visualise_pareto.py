@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Visualise the 3D Pareto front of Huff, Partially Binary, and Pareto-Huff models.
+"""
 
 import sys
 import numpy as np

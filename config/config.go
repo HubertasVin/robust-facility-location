@@ -27,6 +27,9 @@ type Config struct {
 	RankFile        string  // File to save/load rank scores
 	PerformTraining bool    // If true, run optimization; else use stored ranks
 
+	// Customer behaviour model to optimise during training
+	BehaviourModel string // "huff", "binary", "partially_binary", or "pareto_huff"
+
 	// Output / reporting
 	CheckedSolutionsFile string // TSV file with all evaluated solutions and objectives
 	JSONMode             bool   // If true, output results as JSON to stdout
@@ -46,6 +49,7 @@ func Load() *Config {
 		Alpha:                envFloat("ALPHA", 0.1),
 		RankFile:             envString("RANK_FILE", "ranks.dat"),
 		PerformTraining:      envBool("TRAINING_MODE", true),
+		BehaviourModel:       envString("BEHAVIOUR_MODEL", "huff"),
 		CheckedSolutionsFile: envString("CHECKED_SOLUTIONS_FILE", "checked_solutions.tsv"),
 		JSONMode:             envBool("JSON_MODE", false),
 		TwoDMode:             envBool("TWO_D_MODE", false),

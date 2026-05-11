@@ -1,1 +1,0 @@
-Don't write comments for visualisation code and minimal for the actual program.

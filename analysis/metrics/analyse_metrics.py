@@ -1,8 +1,4 @@
 """Analyse raw_results.json and compute metrics for each configuration.
-
-Produces robustness_metrics.csv with columns:
-max_facilities, iterations, solution_stability, hypervolume, price_of_robustness,
-optimality_gap, coefficient_of_variation
 """
 
 import csv
@@ -13,9 +9,9 @@ from collections import defaultdict
 from pathlib import Path
 
 BEST_KNOWN = {
-    3: [23.422252, 31.715301, 33.605939],
-    5: [29.714386, 38.163530, 42.447363],
-    10: [40.585970, 46.079790, 56.232962],
+    3: [24.433328, 33.124437, 34.473338],
+    5: [31.558339, 40.442048, 44.917027],
+    10: [41.307643, 47.663664, 58.020932],
 }
 
 
@@ -146,10 +142,11 @@ def price_of_robustness(runs, facilities):
         if "knee_point" in r and r["knee_point"] and "objectives" in r["knee_point"]:
             obj = r["knee_point"]["objectives"]
             if len(obj) == 3:
-                f_robust = mean(obj)
-                f_best = mean(best)
-                if f_best != 0:
-                    ratios.append(f_robust / f_best)
+                for dim in range(3):
+                    f_robust = obj[dim]
+                    f_best = best[dim]
+                    if f_best != 0:
+                        ratios.append(f_robust / f_best)
 
     return mean(ratios) if ratios else 0.0
 

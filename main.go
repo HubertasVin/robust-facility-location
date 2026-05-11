@@ -20,6 +20,19 @@ type JSONResult struct {
 	ParetoFront   []*solution.Solution `json:"pareto_front"`
 }
 
+func parseBehaviourModel(name string) problem.CustomerBehaviourModel {
+	switch name {
+	case "binary":
+		return problem.BinaryModel{}
+	case "partially_binary":
+		return problem.PartiallyBinaryModel{}
+	case "pareto_huff":
+		return problem.ParetoHuffModel{}
+	default:
+		return problem.HuffModel{}
+	}
+}
+
 func AllBehaviourModels(twoDMode bool) []problem.CustomerBehaviourModel {
 	if twoDMode {
 		return []problem.CustomerBehaviourModel{
@@ -42,7 +55,7 @@ func main() {
 		log.Fatalf("Failed to load problem data: %v", err)
 	}
 
-	behaviourModel := problem.HuffModel{}
+	behaviourModel := parseBehaviourModel(cfg.BehaviourModel)
 
 	agent := ranking.NewAgent(cfg, prob, behaviourModel)
 

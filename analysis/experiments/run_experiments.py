@@ -1,7 +1,4 @@
 """Run the robust-facility-location solver with multiple configurations in parallel.
-
-Collects 20 samples per (iterations, max_facilities) combination and saves
-raw JSON results to raw_results.json.
 """
 
 import concurrent.futures
@@ -13,7 +10,7 @@ import time
 from itertools import product
 from pathlib import Path
 
-ITERATIONS_LIST = [8000, 16000, 32000, 64000]
+ITERATIONS_LIST = [8000, 16000, 32000, 64000, 128000, 192000]
 FACILITIES_LIST = [3, 5, 10]
 SAMPLES = 100
 MAX_WORKERS = max(os.cpu_count() or 4, 6)

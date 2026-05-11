@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Visualise robustness metrics across configurations as bar charts.
+"""
 
 import matplotlib
 matplotlib.use('Agg')
@@ -79,7 +80,7 @@ def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
                     f'{val:.3f}',
                     ha='center',
                     va='bottom',
-                    fontsize=14,
+                    fontsize=11,
                 )
 
     tick_fontsize = 14

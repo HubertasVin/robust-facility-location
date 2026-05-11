@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Visualise the history of interquartile means (IQM) of knee point objectives across iterations.
+"""
 
 import json
 import sys

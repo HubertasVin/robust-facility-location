@@ -13,7 +13,7 @@ robust-flp
 
 # Generated files
 checked_solutions.tsv
-ranks.dat
+ranks*.dat
 raw_results.json
 iqm_checkpoints.json
 

@@ -163,6 +163,32 @@ def partially_binary_utility(p, X):
     
     return to_percent(utility, total)
 
+def binary_utility(p, X):
+    total = 0.0
+    utility = 0.0
+    
+    for i, dp in enumerate(p.demands):
+        total += dp.weight
+        
+        bestJ = -1.0
+        for jIdx, jLoc in enumerate(p.J):
+            attr = attractiveness(p.distance(i, jLoc), p.QJ[jIdx])
+            if attr > bestJ:
+                bestJ = attr
+        
+        bestX = -1.0
+        for xLoc in X:
+            attr = attractiveness(p.distance(i, xLoc), p.QLByLoc[xLoc])
+            if attr > bestX:
+                bestX = attr
+        
+        if bestX > bestJ:
+            utility += dp.weight
+        elif bestX == bestJ:
+            utility += dp.weight / 2.0
+    
+    return to_percent(utility, total)
+
 def pareto_huff_utility(p, X):
     total = 0.0
     utility = 0.0
@@ -225,9 +251,11 @@ if __name__ == "__main__":
     print("Evaluating facility set {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}:")
     print(f"  HuffModel: {huff_utility(p, facility_set_1):.6f}%")
     print(f"  PartiallyBinaryModel: {partially_binary_utility(p, facility_set_1):.6f}%")
+    print(f"  BinaryModel: {binary_utility(p, facility_set_1):.6f}%")
     print(f"  ParetoHuffModel: {pareto_huff_utility(p, facility_set_1):.6f}%")
     
     print("\nEvaluating facility set {0, 1, 2, 3, 4, 5, 6, 7, 8, 49}:")
     print(f"  HuffModel: {huff_utility(p, facility_set_2):.6f}%")
     print(f"  PartiallyBinaryModel: {partially_binary_utility(p, facility_set_2):.6f}%")
+    print(f"  BinaryModel: {binary_utility(p, facility_set_2):.6f}%")
     print(f"  ParetoHuffModel: {pareto_huff_utility(p, facility_set_2):.6f}%")

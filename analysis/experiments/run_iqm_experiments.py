@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Run the robust-facility-location solver multiple times and collect knee points at regular intervals.
+"""
 
 import concurrent.futures
 import json

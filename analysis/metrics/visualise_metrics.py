@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 
 
-METRIC_LABELS = {
+METRIC_LABELS: dict[str, str] = {
     'solution_stability': 'Solution Stability',
     'hypervolume': 'Hypervolume',
     'optimality_gap': 'Optimality Gap (%)',
@@ -51,12 +51,12 @@ def format_iter_label(n):
 
 
 def create_chart(data, facility_sizes, iteration_counts, metric, output_dir):
-    label = METRIC_LABELS.get(metric, metric)
+    label = METRIC_LABELS[metric]
     filename = f'{metric}_chart.png'
 
     x = np.arange(len(facility_sizes))
     bar_width = 0.8 / len(iteration_counts)
-    colors = plt.cm.viridis(np.linspace(0.15, 0.85, len(iteration_counts)))
+    colors = plt.get_cmap('viridis')(np.linspace(0.15, 0.85, len(iteration_counts)))
 
     fig, ax = plt.subplots(figsize=(12, 7))
 
